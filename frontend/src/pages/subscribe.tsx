@@ -1,4 +1,5 @@
-import { Box, Button, Typography, Grid, Paper, Divider, Modal, TextField, Checkbox, FormControlLabel } from "@mui/material";
+import { Box, Button, Typography, Paper, Divider, Modal, TextField, Checkbox, FormControlLabel } from "@mui/material";
+import Grid from "@mui/material/Grid2";  // ✅ Use Grid2 for the new API
 import { useState } from "react";
 import { useRouter } from "next/router";
 import { apiCall } from "@/module/utils/api";
@@ -105,7 +106,6 @@ function PlanButton({ plan, onOrangeClick }: { plan: typeof plans[number]; onOra
       </Button>
     );
   }
-  // grey
   return (
     <Button
       fullWidth
@@ -216,26 +216,10 @@ export default function SubscribePage() {
   return (
     <Box sx={{ bgcolor: "#FFF3E0", minHeight: "100vh", pb: 6 }}>
       <ProTrialModal open={proModalOpen} onClose={() => setProModalOpen(false)} />
-      <Box
-        sx={{
-          maxWidth: 1400,
-          mx: "auto",
-          pt: 8,
-          px: 2,
-        }}
-      >
-        <Grid
-          container
-          spacing={3}
-          justifyContent="center"
-          wrap="nowrap"
-          sx={{
-            flexWrap: { xs: "wrap", md: "nowrap" },
-            overflowX: { xs: "auto", md: "visible" },
-          }}
-        >
-          {plans.map((plan, idx) => (
-            <Grid item xs={12} sm={6} md={3} key={plan.name} sx={{ minWidth: 300, display: 'flex' }}>
+      <Box sx={{ maxWidth: 1400, mx: "auto", pt: 8, px: 2 }}>
+        <Grid container spacing={3} sx={{ justifyContent: "center", flexWrap: { xs: "wrap", md: "nowrap" }, overflowX: { xs: "auto", md: "visible" } }}>
+          {plans.map((plan) => (
+            <Grid xs={12} sm={6} md={3} key={plan.name} sx={{ minWidth: 300, display: 'flex' }}>
               <Paper
                 elevation={plan.recommend ? 8 : 2}
                 sx={{
@@ -245,10 +229,7 @@ export default function SubscribePage() {
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "flex-start",
-                  border:
-                    plan.recommend && !plan.button.disabled
-                      ? "2px solid #FFA726"
-                      : undefined,
+                  border: plan.recommend && !plan.button.disabled ? "2px solid #FFA726" : undefined,
                   position: "relative",
                   bgcolor: "#fff",
                   width: 1,
@@ -316,4 +297,4 @@ export default function SubscribePage() {
       </Box>
     </Box>
   );
-} 
+}
