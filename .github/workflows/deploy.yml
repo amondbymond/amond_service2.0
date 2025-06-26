@@ -1,4 +1,4 @@
-name: Deploy Backend to EC2
+name: Full Deployment with rsync and S3 Clear
 
 on:
   push:
@@ -6,14 +6,15 @@ on:
       - main
 
 jobs:
-  deploy-backend:
+  deploy:
     runs-on: ubuntu-latest
-    name: Deploy Backend to EC2
 
     steps:
+      # 1. Checkout the repository
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # 2. Generate backend .env file
       - name: Generate .env for backend
         run: |
           cat <<EOF > backend/.env
@@ -33,6 +34,7 @@ jobs:
           KAKAO_REST_API=${{ secrets.KAKAO_REST_API }}
           EOF
 
+      # 3. Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -40,7 +42,56 @@ jobs:
           cache: "npm"
           cache-dependency-path: backend/package-lock.json
 
-      - name: Install dependencies
+      # 4. Install backend dependencies
+      - name: Install backend dependencies
         run: |
           cd backend
           npm ci
+
+      # 5. Deploy Backend via rsync and Restart PM2
+      - name: Deploy Backend via rsync to EC2
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY }}" > key.pem
+          chmod 600 key.pem
+
+          ssh -o StrictHostKeyChecking=no -i key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "mkdir -p /home/${{ secrets.EC2_USER }}/${{ secrets.EC2_FOLDER_NAME }}/backend"
+
+          rsync -avz --exclude 'node_modules' \
+            -e "ssh -i key.pem -o StrictHostKeyChecking=no" \
+            backend/ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/${{ secrets.EC2_FOLDER_NAME }}/backend
+
+          ssh -o StrictHostKeyChecking=no -i key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "
+            cd /home/${{ secrets.EC2_USER }}/${{ secrets.EC2_FOLDER_NAME }}/backend &&
+            npm install &&
+            pm2 restart ${{ secrets.PM2_PROCESS_NAME }} || pm2 start npm --name ${{ secrets.PM2_PROCESS_NAME }} -- start
+          "
+
+      # 6. Build Frontend
+      - name: Build Frontend
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+
+      # 7. Deploy Frontend to S3 (Empty First)
+      - name: Deploy Frontend to S3
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          aws s3 rm s3://${{ secrets.S3_BUCKET_NAME }}/ --recursive
+          aws s3 sync ./frontend/out s3://${{ secrets.S3_BUCKET_NAME }} --delete
+
+      # 8. Invalidate CloudFront Cache
+      - name: Invalidate CloudFront Cache
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_DIST_ID }} --paths "/*"
+
+      # 9. Cleanup
+      - name: Remove PEM file
+        run: rm key.pem
