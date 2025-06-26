@@ -1,0 +1,12 @@
+{
+  "name": "amond_new",
+  "version": "1.0.0",
+  "description": "이 저장소는 Amond 서비스의 백엔드 API 서버와 Next.js 프론트엔드를 함께 포함하고 있습니다.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
