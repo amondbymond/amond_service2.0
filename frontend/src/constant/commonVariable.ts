@@ -10,7 +10,7 @@ export const s3ImageUrl = "https://amond-image.s3.ap-northeast-2.amazonaws.com";
 /** 정규식 */
 export const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
 export const passwordRegex =
-  /^(?=.*[A-Za-zㄱ-ㅎㅏ-ㅣ가-힣])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&ㄱ-ㅎㅏ-ㅣ가-힣]{8,16}$/;
+  /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z\d])[A-Za-z\d\W_]{8,16}$/;
 export const phoneRegex = /^[0-9-]*$/;
 
 /** 아이템 수 */

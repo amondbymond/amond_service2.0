@@ -134,6 +134,9 @@ function ProTrialModal({ open, onClose }: { open: boolean; onClose: () => void }
           outline: "none",
         }}
       >
+        <Box sx={{ mb: 1, display: 'flex', justifyContent: 'flex-start' }}>
+          <img src="/assets/arrow-up.png" alt="업그레이드 화살표" style={{ width: 40, height: 'auto' }} />
+        </Box>
         <Typography fontWeight={700} fontSize={28} mb={1}>
           프로 요금제로 업그레이드
         </Typography>

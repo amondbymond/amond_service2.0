@@ -87,7 +87,7 @@ export default function UserSidebar() {
         <Button
           variant="contained"
           color="warning"
-          sx={{ flex: 1, fontWeight: 700 }}
+          sx={{ flex: 1, fontWeight: 700, borderRadius: 2 }}
           onClick={goToProjectPage}
           disabled={loading}
         >
@@ -95,7 +95,7 @@ export default function UserSidebar() {
         </Button>
         <Button
           variant="contained"
-          sx={{ flex: 1, bgcolor: "#FFF3E0", color: "#FF9800", fontWeight: 700, '&:hover': { bgcolor: "#FFE0B2" } }}
+          sx={{ flex: 1, bgcolor: "#FFF3E0", color: "#FF9800", fontWeight: 700, borderRadius: 2, '&:hover': { bgcolor: "#FFE0B2" } }}
           onClick={goToProjectPage}
           disabled={loading}
         >
