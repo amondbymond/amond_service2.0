@@ -1,5 +1,4 @@
 import { Box, Button, Typography, Paper, Divider, Modal, TextField, Checkbox, FormControlLabel } from "@mui/material";
-import Grid from "@mui/material/Grid2";  // ✅ Use Grid2 for the new API
 import { useState } from "react";
 import { useRouter } from "next/router";
 import { apiCall } from "@/module/utils/api";
@@ -217,9 +216,9 @@ export default function SubscribePage() {
     <Box sx={{ bgcolor: "#FFF3E0", minHeight: "100vh", pb: 6 }}>
       <ProTrialModal open={proModalOpen} onClose={() => setProModalOpen(false)} />
       <Box sx={{ maxWidth: 1400, mx: "auto", pt: 8, px: 2 }}>
-        <Grid container spacing={3} sx={{ justifyContent: "center", flexWrap: { xs: "wrap", md: "nowrap" }, overflowX: { xs: "auto", md: "visible" } }}>
+        <Box sx={{ display: 'flex', gap: 3, justifyContent: 'center', flexWrap: { xs: 'wrap', md: 'nowrap' }, overflowX: { xs: 'auto', md: 'visible' } }}>
           {plans.map((plan) => (
-            <Grid xs={12} sm={6} md={3} key={plan.name} sx={{ minWidth: 300, display: 'flex' }}>
+            <Box key={plan.name} sx={{ minWidth: 300, display: 'flex', flex: { xs: '0 0 auto', md: '1 1 0' }, maxWidth: { xs: 'none', md: '25%' } }}>
               <Paper
                 elevation={plan.recommend ? 8 : 2}
                 sx={{
@@ -288,9 +287,9 @@ export default function SubscribePage() {
                   ))}
                 </Box>
               </Paper>
-            </Grid>
+            </Box>
           ))}
-        </Grid>
+        </Box>
       </Box>
       <Box sx={{ textAlign: "center", mt: 8, color: "#888", fontSize: 14 }}>
         Copyright © amond. All rights reserved
