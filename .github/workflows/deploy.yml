@@ -5,6 +5,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -13,6 +16,10 @@ jobs:
       # 1. Checkout the repository
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Print test secret
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY }}"
 
       # 2. Generate backend .env file
       - name: Generate .env for backend
@@ -48,12 +55,24 @@ jobs:
           cd backend
           npm ci
 
-      # 5. Deploy Backend via rsync and Restart PM2
-      - name: Deploy Backend via rsync to EC2
+      # 5. Create PEM file
+      - name: Create PEM file
         run: |
           echo "${{ secrets.EC2_SSH_KEY }}" > key.pem
           chmod 600 key.pem
 
+      # 6. Debug: Check PEM file content (should start with BEGIN)
+      - name: Debug PEM file content
+        run: |
+          head -n 2 key.pem
+
+      # 7. Debug: Check if secret is available
+      - name: List environment variables
+        run: printenv
+
+      # 8. Deploy Backend via rsync to EC2
+      - name: Deploy Backend via rsync to EC2
+        run: |
           ssh -o StrictHostKeyChecking=no -i key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "mkdir -p /home/${{ secrets.EC2_USER }}/${{ secrets.EC2_FOLDER_NAME }}/backend"
 
           rsync -avz --exclude 'node_modules' \
@@ -66,14 +85,14 @@ jobs:
             pm2 restart ${{ secrets.PM2_PROCESS_NAME }} || pm2 start npm --name ${{ secrets.PM2_PROCESS_NAME }} -- start
           "
 
-      # 6. Build Frontend
+      # 9. Build Frontend
       - name: Build Frontend
         run: |
           cd frontend
           npm ci
           npm run build
 
-      # 7. Deploy Frontend to S3 (Empty First)
+      # 10. Deploy Frontend to S3 (Empty First)
       - name: Deploy Frontend to S3
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -83,7 +102,7 @@ jobs:
           aws s3 rm s3://${{ secrets.S3_BUCKET_NAME }}/ --recursive
           aws s3 sync ./frontend/out s3://${{ secrets.S3_BUCKET_NAME }} --delete
 
-      # 8. Invalidate CloudFront Cache
+      # 11. Invalidate CloudFront Cache
       - name: Invalidate CloudFront Cache
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -92,6 +111,6 @@ jobs:
         run: |
           aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_DIST_ID }} --paths "/*"
 
-      # 9. Cleanup
+      # 12. Cleanup PEM file
       - name: Remove PEM file
         run: rm key.pem
