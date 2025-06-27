@@ -120,6 +120,8 @@ function PlanButton({ plan, onOrangeClick }: { plan: typeof plans[number]; onOra
 function ProTrialModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'bank'>('card');
   const [billingOption, setBillingOption] = useState<'monthly'>('monthly');
+  const [name, setName] = useState('');
+  const [company, setCompany] = useState('');
 
   return (
     <Modal open={open} onClose={onClose}>
@@ -147,8 +149,20 @@ function ProTrialModal({ open, onClose }: { open: boolean; onClose: () => void }
           더 많은 콘텐츠를 편하게 제작하고, AI로 마케팅을 자동화 하세요.
         </Typography>
         <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
-          <TextField label="이름" size="small" sx={{ flex: 1 }} value="" InputProps={{ readOnly: true }} />
-          <TextField label="회사 이름(선택)" size="small" sx={{ flex: 1 }} value="" InputProps={{ readOnly: true }} />
+          <TextField 
+            label="이름" 
+            size="small" 
+            sx={{ flex: 1 }} 
+            value={name} 
+            onChange={e => setName(e.target.value)}
+          />
+          <TextField 
+            label="회사 이름(선택)" 
+            size="small" 
+            sx={{ flex: 1 }} 
+            value={company} 
+            onChange={e => setCompany(e.target.value)}
+          />
         </Box>
         <Typography fontWeight={700} mb={1}>
           결제 수단
