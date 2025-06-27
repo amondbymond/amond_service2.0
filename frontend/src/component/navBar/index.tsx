@@ -25,6 +25,8 @@ import { BaseModalBox } from "../ui/Modal";
 import axios from "axios";
 import HidePasswordTextField from "../ui/HidePassTextField";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import PersonIcon from "@mui/icons-material/Person";
+import UserSidebar from "../ui/UserSidebar";
 
 export default function NavBar() {
   const router = useRouter();
@@ -33,6 +35,7 @@ export default function NavBar() {
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [passwordModal, setPasswordModal] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const navBarHeight = { xs: "44px", md: "59px" };
 
@@ -44,6 +47,10 @@ export default function NavBar() {
     setAnchorEl(null);
   };
 
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
+
   // 로그아웃
   const logOut = async () => {
     try {
@@ -52,6 +59,7 @@ export default function NavBar() {
         method: "post",
       });
       setUserInfo(null);
+      setSidebarOpen(false);
       router.push("/login");
     } catch (e) {
       console.log(e);
@@ -94,7 +102,7 @@ export default function NavBar() {
                   />
                 </Link>
 
-                <Box sx={{ width: { xs: "90px", md: "250px" } }}>
+                <Box sx={{ width: { xs: "90px", md: "350px" } }}>
                   <RowStack spacing="12px" justifyContent="flex-end">
                     {isMobile ? (
                       <>
@@ -132,21 +140,19 @@ export default function NavBar() {
                         >
                           {userInfo?.id ? (
                             <>
-                              {userInfo?.authType === "이메일" && (
-                                <MenuItem
-                                  onClick={() => {
-                                    setPasswordModal(true);
-                                    handleClose();
-                                  }}
-                                  sx={{
-                                    p: "0px 12px",
-                                    fontSize: "14px",
-                                    minHeight: "40px",
-                                  }}
-                                >
-                                  비밀번호 변경
-                                </MenuItem>
-                              )}
+                              <MenuItem
+                                onClick={() => {
+                                  setPasswordModal(true);
+                                  handleClose();
+                                }}
+                                sx={{
+                                  p: "0px 12px",
+                                  fontSize: "14px",
+                                  minHeight: "40px",
+                                }}
+                              >
+                                비밀번호 변경
+                              </MenuItem>
                               <MenuItem
                                 onClick={() => {
                                   logOut();
@@ -197,35 +203,22 @@ export default function NavBar() {
                       <>
                         {userInfo?.id ? (
                           <>
-                            {userInfo?.authType === "이메일" && (
-                              <Button
-                                variant="contained"
-                                onClick={() => setPasswordModal(true)}
-                                color="primary"
-                                sx={{
-                                  border: "1px solid #FFF",
-                                  "&:hover": {
-                                    backgroundColor: "rgba(255, 255, 255, 0.1)",
-                                  },
-                                }}
-                              >
-                                비밀번호 변경
-                              </Button>
-                            )}
-
-                            <Button
-                              variant="contained"
-                              onClick={logOut}
+                            {/* Person Icon for Sidebar Toggle */}
+                            <IconButton
+                              onClick={toggleSidebar}
                               sx={{
-                                backgroundColor: "white",
-                                color: "primary.main",
-                                "&:hover": {
-                                  backgroundColor: "rgba(255, 255, 255, 0.9)",
+                                color: "white",
+                                border: "2px solid white",
+                                ml: 1,
+                                width: "40px",
+                                height: "40px",
+                                '&:hover': {
+                                  backgroundColor: "rgba(255, 255, 255, 0.1)",
                                 },
                               }}
                             >
-                              로그아웃
-                            </Button>
+                              <PersonIcon sx={{ fontSize: "20px" }} />
+                            </IconButton>
                           </>
                         ) : (
                           <>
@@ -271,6 +264,11 @@ export default function NavBar() {
         {/* navBar만큼 내리기 (fixed) */}
         <Box sx={{ height: navBarHeight }} />
       </header>
+
+      {/* Toggleable UserSidebar */}
+      {sidebarOpen && userInfo?.id && (
+        <UserSidebar onClose={() => setSidebarOpen(false)} />
+      )}
 
       {passwordModal && (
         <PasswordModal

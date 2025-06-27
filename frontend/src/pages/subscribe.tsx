@@ -118,6 +118,9 @@ function PlanButton({ plan, onOrangeClick }: { plan: typeof plans[number]; onOra
 }
 
 function ProTrialModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'bank'>('card');
+  const [billingOption, setBillingOption] = useState<'monthly'>('monthly');
+
   return (
     <Modal open={open} onClose={onClose}>
       <Box
@@ -144,54 +147,140 @@ function ProTrialModal({ open, onClose }: { open: boolean; onClose: () => void }
           더 많은 콘텐츠를 편하게 제작하고, AI로 마케팅을 자동화 하세요.
         </Typography>
         <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
-          <TextField label="이름" size="small" sx={{ flex: 1 }} value="윤지 유" InputProps={{ readOnly: true }} />
-          <TextField label="회사 이름(선택)" size="small" sx={{ flex: 1 }} value="아몬드 주식회사" InputProps={{ readOnly: true }} />
+          <TextField label="이름" size="small" sx={{ flex: 1 }} value="" InputProps={{ readOnly: true }} />
+          <TextField label="회사 이름(선택)" size="small" sx={{ flex: 1 }} value="" InputProps={{ readOnly: true }} />
         </Box>
         <Typography fontWeight={700} mb={1}>
           결제 수단
         </Typography>
         <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
-          <Button variant="outlined" color="warning" sx={{ flex: 1, fontWeight: 700 }}>
+          <Button 
+            variant={paymentMethod === 'card' ? "contained" : "outlined"} 
+            sx={{ 
+              flex: 1, 
+              fontWeight: 700, 
+              borderRadius: 2,
+              minHeight: 48,
+              ...(paymentMethod === 'card' && {
+                bgcolor: '#FFA726',
+                color: '#fff',
+                '&:hover': { bgcolor: '#FF9800' }
+              }),
+              ...(paymentMethod !== 'card' && {
+                borderColor: '#ddd',
+                color: '#666',
+                '&:hover': { 
+                  borderColor: '#FFA726', 
+                  color: '#FFA726',
+                  borderWidth: '2px',
+                  transform: 'translateY(-1px)',
+                  boxShadow: '0 4px 8px rgba(255, 167, 38, 0.2)'
+                }
+              })
+            }}
+            onClick={() => setPaymentMethod('card')}
+          >
             신용 카드
           </Button>
-          <Button variant="outlined" sx={{ flex: 1, fontWeight: 700 }}>
+          <Button 
+            variant={paymentMethod === 'bank' ? "contained" : "outlined"} 
+            sx={{ 
+              flex: 1, 
+              fontWeight: 700, 
+              borderRadius: 2,
+              minHeight: 48,
+              ...(paymentMethod === 'bank' && {
+                bgcolor: '#FFA726',
+                color: '#fff',
+                '&:hover': { bgcolor: '#FF9800' }
+              }),
+              ...(paymentMethod !== 'bank' && {
+                borderColor: '#ddd',
+                color: '#666',
+                '&:hover': { 
+                  borderColor: '#FFA726', 
+                  color: '#FFA726',
+                  borderWidth: '2px',
+                  transform: 'translateY(-1px)',
+                  boxShadow: '0 4px 8px rgba(255, 167, 38, 0.2)'
+                }
+              })
+            }}
+            onClick={() => setPaymentMethod('bank')}
+          >
             무통장 입금
           </Button>
         </Box>
-        <Typography fontWeight={700} mb={1}>
-          청구 옵션
-        </Typography>
-        <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-          <Box
-            sx={{
-              border: "2px solid #FFA726",
-              borderRadius: 2,
-              px: 2,
-              py: 1,
-              display: "flex",
-              alignItems: "center",
-              mr: 2,
-            }}
-          >
-            <Box
-              sx={{
-                width: 18,
-                height: 18,
-                borderRadius: "50%",
-                border: "2px solid #FFA726",
-                display: "inline-block",
-                mr: 1,
-                background: "#fff",
-              }}
-            />
-            <Typography fontWeight={500} fontSize={15}>
-              월간 결제 <b>₩ 9,900원 / 월</b>
+        
+        {paymentMethod === 'bank' ? (
+          <>
+            <Typography fontWeight={700} mb={1}>
+              청구 정보
             </Typography>
-          </Box>
-        </Box>
-        <FormControlLabel control={<Checkbox defaultChecked />} label="전체 동의" sx={{ mb: 1 }} />
+            <Box sx={{ 
+              border: "2px solid #FFA726", 
+              borderRadius: 2, 
+              p: 2, 
+              mb: 3,
+              bgcolor: '#FFF3E0'
+            }}>
+              <Typography fontWeight={600} fontSize={15} mb={1}>
+                입금 계좌 정보
+              </Typography>
+              <Typography fontSize={14} color="grey.700" mb={0.5}>
+                은행: 신한은행
+              </Typography>
+              <Typography fontSize={14} color="grey.700" mb={0.5}>
+                계좌번호: 110-123-456789
+              </Typography>
+              <Typography fontSize={14} color="grey.700" mb={0.5}>
+                예금주: 아몬드주식회사
+              </Typography>
+              <Typography fontSize={14} color="grey.700" fontWeight={600}>
+                입금금액: ₩ 9,900원
+              </Typography>
+            </Box>
+          </>
+        ) : (
+          <>
+            <Typography fontWeight={700} mb={1}>
+              청구 옵션
+            </Typography>
+            <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+              <FormControlLabel
+                control={
+                  <Checkbox 
+                    checked={billingOption === 'monthly'}
+                    onChange={() => setBillingOption('monthly')}
+                    sx={{
+                      color: '#FFA726',
+                      '&.Mui-checked': {
+                        color: '#FFA726',
+                      },
+                    }}
+                  />
+                }
+                label={
+                  <Typography fontWeight={500} fontSize={15}>
+                    월간 결제 <b>₩ 9,900원 / 월</b>
+                  </Typography>
+                }
+                sx={{
+                  border: "2px solid #FFA726",
+                  borderRadius: 2,
+                  px: 2,
+                  py: 1,
+                  m: 0,
+                  bgcolor: '#FFF3E0'
+                }}
+              />
+            </Box>
+          </>
+        )}
+        
+        <FormControlLabel control={<Checkbox />} label="전체 동의" sx={{ mb: 1 }} />
         <Box sx={{ pl: 3, mb: 3 }}>
-          <FormControlLabel control={<Checkbox defaultChecked />} label="구매조건 확인 및 결제진행에 동의" />
+          <FormControlLabel control={<Checkbox />} label="구매조건 확인 및 결제진행에 동의" />
         </Box>
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mt: 2 }}>
           <Box>
@@ -201,7 +290,7 @@ function ProTrialModal({ open, onClose }: { open: boolean; onClose: () => void }
           </Box>
           <Box>
             <Button variant="contained" color="warning" sx={{ fontWeight: 700, fontSize: 16, borderRadius: 2 }}>
-              프로 요금제로 업그레이드
+              {paymentMethod === 'bank' ? '무통장 입금 신청' : '프로 요금제로 업그레이드'}
             </Button>
             <Button variant="outlined" sx={{ ml: 2, color: '#888', borderColor: '#eee', fontWeight: 500, fontSize: 14, mt: 1 }} disabled>
               문의 사항이 있으신가요?

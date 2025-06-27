@@ -24,14 +24,12 @@ import {
 } from "@/component/ui/Modal";
 import { useRouter } from "next/router";
 import { categoryList, reasonList } from "@/constant/commonVariable";
-import UserSidebar from "@/component/ui/UserSidebar";
 
 export default function MainPage() {
   const [currentStep, setCurrentStep] = useState(0);
 
   return (
     <div>
-      <UserSidebar />
       <BodyContainer
         sx={{
           pt: { xs: "50px", md: "60px" },
