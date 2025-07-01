@@ -67,6 +67,23 @@ export default function NavBar() {
     }
   };
 
+  // 프로젝트 페이지로 이동
+  const goToProjectPage = async () => {
+    try {
+      const response = await apiCall({
+        url: "/content/project",
+        method: "get",
+      });
+      if (response.data.projectId) {
+        router.push(`/project/${response.data.projectId}`);
+      } else {
+        alert("프로젝트가 없습니다.");
+      }
+    } catch (e) {
+      alert("프로젝트 이동 실패");
+    }
+  };
+
   return (
     <>
       <header>
@@ -140,6 +157,71 @@ export default function NavBar() {
                         >
                           {userInfo?.id ? (
                             <>
+                              <MenuItem
+                                onClick={() => {
+                                  goToProjectPage();
+                                  handleClose();
+                                }}
+                                sx={{
+                                  p: "0px 12px",
+                                  fontSize: "14px",
+                                  minHeight: "40px",
+                                }}
+                              >
+                                내 캘린더
+                              </MenuItem>
+                              <MenuItem
+                                onClick={() => {
+                                  goToProjectPage();
+                                  handleClose();
+                                }}
+                                sx={{
+                                  p: "0px 12px",
+                                  fontSize: "14px",
+                                  minHeight: "40px",
+                                }}
+                              >
+                                새 콘텐츠
+                              </MenuItem>
+                              <MenuItem
+                                onClick={() => {
+                                  router.push("/subscribe");
+                                  handleClose();
+                                }}
+                                sx={{
+                                  p: "0px 12px",
+                                  fontSize: "14px",
+                                  minHeight: "40px",
+                                }}
+                              >
+                                구독 결제하기
+                              </MenuItem>
+                              <MenuItem
+                                onClick={() => {
+                                  window.open("https://sticky-partridge-ee9.notion.site/2172fde8bab680b1b776cb4244d60f9b", "_blank");
+                                  handleClose();
+                                }}
+                                sx={{
+                                  p: "0px 12px",
+                                  fontSize: "14px",
+                                  minHeight: "40px",
+                                }}
+                              >
+                                이용약관
+                              </MenuItem>
+                              <MenuItem
+                                onClick={() => {
+                                  window.open("https://sticky-partridge-ee9.notion.site/2172fde8bab68036bd25f88124abaf02", "_blank");
+                                  handleClose();
+                                }}
+                                sx={{
+                                  p: "0px 12px",
+                                  fontSize: "14px",
+                                  minHeight: "40px",
+                                }}
+                              >
+                                개인정보처리방침
+                              </MenuItem>
                               <MenuItem
                                 onClick={() => {
                                   setPasswordModal(true);

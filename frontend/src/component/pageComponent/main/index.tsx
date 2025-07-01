@@ -87,12 +87,14 @@ function StartSection({
         }}
       >
         <video
-          src="/assets/video/intro.mp4"
-          autoPlay
-          loop
-          muted
-          style={{ width: "100%", height: "auto", borderRadius: "20px" }}
-        />
+  src="/assets/video/intro.mp4"
+  playsInline
+  muted
+  controls
+  loop
+  style={{ width: "100%", height: "auto", borderRadius: "20px" }}
+/>
+
       </RowStack>
 
       <Typography
