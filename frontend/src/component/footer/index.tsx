@@ -23,7 +23,8 @@ export default function Footer() {
               display: 'inline-block',
               minWidth: 'max-content'
             }}>
-              아몬드 | 대표자명 유윤지 | 통신판매업신고번호 2025-용인기흥-02270호 | 사업자등록번호 816-81-03565 | 경기도 용인시 기흥구 동백중앙로 245, 215호 | 010-3192-7934 | jerry@mond.io.kr
+              아몬드 | 대표자명 유윤지 | 통신판매업신고번호 2025-용인기흥-02270호 | 사업자등록번호 816-81-03565 | 경기도 용인시 기흥구 동백중앙로 245, 215호 | 010-3192-7934 | service@mond.io.kr
+
             </Box>
           
             <Typography sx={{ mb: 0.5, textAlign: "left", fontSize: '15px !important', color: '#888 !important' }}>

@@ -4,6 +4,7 @@ import LoginContext from "@/module/ContextAPI/LoginContext";
 import { useRouter } from "next/router";
 import { apiCall } from "@/module/utils/api";
 import CloseIcon from "@mui/icons-material/Close";
+import ContactMakerModal from "./ContactMakerModal";
 
 const TERMS_URL = "https://sticky-partridge-ee9.notion.site/2172fde8bab680b1b776cb4244d60f9b";
 const PRIV_URL= "https://sticky-partridge-ee9.notion.site/2172fde8bab68036bd25f88124abaf02"
@@ -16,6 +17,7 @@ export default function UserSidebar({ onClose }: UserSidebarProps) {
   const { userInfo, setUserInfo } = useContext(LoginContext);
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [contactModalOpen, setContactModalOpen] = useState(false);
 
   if (!userInfo) return null;
 
@@ -161,6 +163,16 @@ export default function UserSidebar({ onClose }: UserSidebarProps) {
 
         <Divider sx={{ my: 2 }} />
 
+        {/* Contact Maker Button */}
+        <Button
+          variant="text"
+          fullWidth
+          sx={{ fontWeight: 700, color: "#222", mb: 1, fontSize: 18 }}
+          onClick={() => setContactModalOpen(true)}
+        >
+          제작자에게 문의하기
+        </Button>
+
         <Button
           variant="text"
           color="error"
@@ -170,6 +182,7 @@ export default function UserSidebar({ onClose }: UserSidebarProps) {
         >
           로그아웃
         </Button>
+        <ContactMakerModal open={contactModalOpen} onClose={() => setContactModalOpen(false)} />
       </Box>
     </Fade>
   );

@@ -106,18 +106,25 @@ export default function NavBar() {
                 <Box sx={{ width: { xs: "90px", md: "250px" } }} />
 
                 {/* 로고 */}
-                <Link href="/">
-                  <CardMedia
-                    component="img"
-                    image="/logoHorizontalWhite.png"
-                    alt="company logo"
-                    sx={{
-                      width: { xs: "97.7px", md: "130px" },
-                      height: { xs: "24px", md: "32px" },
-                      cursor: "pointer",
-                    }}
-                  />
-                </Link>
+                <Box sx={{ 
+                  position: "absolute", 
+                  left: "50%", 
+                  transform: "translateX(-50%)",
+                  zIndex: 1
+                }}>
+                  <Link href="/">
+                    <CardMedia
+                      component="img"
+                      image="/logoHorizontalWhite.png"
+                      alt="company logo"
+                      sx={{
+                        width: { xs: "97.7px", md: "130px" },
+                        height: { xs: "24px", md: "32px" },
+                        cursor: "pointer",
+                      }}
+                    />
+                  </Link>
+                </Box>
 
                 <Box sx={{ width: { xs: "90px", md: "350px" } }}>
                   <RowStack spacing="12px" justifyContent="flex-end">

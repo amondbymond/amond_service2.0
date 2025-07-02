@@ -90,7 +90,7 @@ function StartSection({
   src="/assets/video/intro.mp4"
   playsInline
   muted
-  controls
+  autoPlay
   loop
   style={{ width: "100%", height: "auto", borderRadius: "20px" }}
 />
