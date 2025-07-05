@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/Graceway/static/css/main.d4ef9ada.css",
+    "main.js": "/Graceway/static/js/main.bc5f9432.js",
+    "static/js/453.aa92903a.chunk.js": "/Graceway/static/js/453.aa92903a.chunk.js",
+    "index.html": "/Graceway/index.html",
+    "main.d4ef9ada.css.map": "/Graceway/static/css/main.d4ef9ada.css.map",
+    "main.bc5f9432.js.map": "/Graceway/static/js/main.bc5f9432.js.map",
+    "453.aa92903a.chunk.js.map": "/Graceway/static/js/453.aa92903a.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.d4ef9ada.css",
+    "static/js/main.bc5f9432.js"
+  ]
+}
