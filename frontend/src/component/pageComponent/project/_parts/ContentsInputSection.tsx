@@ -33,7 +33,6 @@ export default function ContentsInputSection({
     competitor: string;
     uploadCycle: string;
     toneMannerList: string[];
-    imageVideoRatio: number;
     imageRatio: string;
     directionList: string[];
   };
@@ -138,12 +137,7 @@ export default function ContentsInputSection({
     });
   };
 
-  const handleImgRatioChange = (value: number) => {
-    onChange({
-      ...content,
-      imageVideoRatio: value,
-    });
-  };
+
 
   const handleDirectionChange = (value: string[]) => {
     onChange({
@@ -312,7 +306,12 @@ export default function ContentsInputSection({
                       content.uploadCycle === u ? "contained" : "outlined"
                     }
                     onClick={() => handleUploadChange(u)}
-                    sx={{ height: 40 }}
+                    disabled={u !== "주 1회"}
+                    sx={{ 
+                      height: 40,
+                      opacity: u !== "주 1회" ? 0.5 : 1,
+                      cursor: u !== "주 1회" ? "not-allowed" : "pointer"
+                    }}
                   >
                     {u}
                   </Button>
@@ -367,28 +366,7 @@ export default function ContentsInputSection({
             </Grid>
           </Box>
 
-          <Box mb={2}>
-            <Typography fontWeight={600} mb={1}>
-              영상&이미지 비중 조절
-            </Typography>
-            <MUISlider
-              value={content.imageVideoRatio}
-              onChange={(_, v) => handleImgRatioChange(v as number)}
-              min={0}
-              max={100}
-              step={20}
-              sx={{ width: "95%", mx: "auto", display: "block" }}
-            />
-            <Box
-              display="flex"
-              justifyContent="space-between"
-              fontSize={12}
-              px={1}
-            >
-              <span>이미지 {content.imageVideoRatio}%</span>
-              <span>영상 {100 - content.imageVideoRatio}%</span>
-            </Box>
-          </Box>
+
 
           <Box mb={2}>
             <Typography fontWeight={600}>이미지 비율</Typography>

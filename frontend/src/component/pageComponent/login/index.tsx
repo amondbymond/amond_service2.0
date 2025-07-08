@@ -90,7 +90,10 @@ export default function LoginPage() {
             const response = await apiCall({
               url: "/content/project/newUser",
               method: "put",
-              body: { projectId },
+              body: { 
+                projectId,
+                imageCount: 4, // Generate 4 images as required
+              },
             });
             if (response.data.message === "프로젝트 연결 성공") {
               localStorage.removeItem("amondProjectId");
@@ -103,7 +106,7 @@ export default function LoginPage() {
 
         // 그 외의 경우 다른 페이지로 이동
         const prevRoute = sessionStorage.getItem("prevRoute");
-        if (prevRoute === "/register" || prevRoute === "/login") {
+        if (prevRoute === "/login/register" || prevRoute === "/login") {
           router.push("/");
         } else {
           router.push(prevRoute || "/");

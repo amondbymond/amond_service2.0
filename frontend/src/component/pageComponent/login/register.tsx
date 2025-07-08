@@ -165,6 +165,8 @@ export default function RegisterPage() {
   };
 
   const goToLogin = () => {
+    // Clear any stored data that might cause issues
+    sessionStorage.removeItem("prevRoute");
     router.push("/login");
   };
 

@@ -10,7 +10,7 @@ import {
   useMediaQuery,
   CardMedia,
 } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import { BodyContainer } from "@/component/ui/BodyContainer";
@@ -33,6 +33,7 @@ import InstagramFeedGrid from "./_parts/InstagramFeedGrid";
 import ContentsInputSection from "./_parts/ContentsInputSection";
 import ProjectEditModal from "./_parts/ProjectEditModal";
 import ContentDetailModal from "./_parts/ContentDetailModal";
+import LoginContext from "@/module/ContextAPI/LoginContext";
 
 // 여기서 맨 처음에 request 어차피 체크하니 여부 체크하고
 // 없으면 바로 생성 ㄲ. 맨 초기 유저들. 진입하자마자 생성하고 로딩하게 하면 될 듯~
@@ -41,6 +42,7 @@ export default function ProjectPage() {
   const isUnderMd = useMediaQuery("(max-width: 768px)");
   const router = useRouter();
   const { projectId } = router.query;
+  const { userInfo, isLoginCheck } = useContext(LoginContext);
 
   // 프로젝트 데이터 (브랜드/상품 정보)
   const [projectData, setProjectData] = useState<any>(null);
@@ -59,9 +61,8 @@ export default function ProjectPage() {
     snsEvent: "",
     essentialKeyword: "",
     competitor: "",
-    uploadCycle: "주 2회",
+    uploadCycle: "주 1회",
     toneMannerList: [] as string[],
-    imageVideoRatio: 40,
     imageRatio: "4:5",
     directionList: [] as string[],
   });
@@ -85,12 +86,18 @@ export default function ProjectPage() {
   // 예시 이벤트를 contentData에서 가져오도록 수정
   const calendarEvents =
     contentData.contentDataList?.map((content: any) => ({
-      // title: isUnderMd ? "발행" : content.subject,
       title: isUnderMd ? "발행" : "콘텐츠 발행",
       date: content.postDate.split(" ")[0],
       color: "#EFE8FF",
       content: content,
     })) || [];
+
+  // Authentication check - only show message when accessed directly via URL
+  useEffect(() => {
+    if (isLoginCheck && !userInfo) {
+      router.push("/login");
+    }
+  }, [userInfo, isLoginCheck, router]);
 
   // 프로젝트 데이터 조회
   useEffect(() => {
@@ -117,10 +124,10 @@ export default function ProjectPage() {
       }
     };
 
-    if (projectId) {
+    if (projectId && userInfo) {
       getData();
     }
-  }, [projectId, projectDataRefresh]);
+  }, [projectId, projectDataRefresh, userInfo]);
 
   // 생성된 콘텐츠 요청 조회
   useEffect(() => {
@@ -139,10 +146,10 @@ export default function ProjectPage() {
       }
     };
 
-    if (projectId) {
+    if (projectId && userInfo) {
       getContentRequest();
     }
-  }, [projectId]);
+  }, [projectId, userInfo]);
 
   // 생성된 콘텐츠 데이터 조회
   useEffect(() => {
@@ -155,16 +162,23 @@ export default function ProjectPage() {
             contentRequestId: selectedContentRequestId,
           },
         });
+        console.log("Received content data:", response.data);
+        if (response.data.contentDataList) {
+          response.data.contentDataList.forEach((content: any, index: number) => {
+            console.log(`Content ${index + 1} direction:`, content.direction);
+            console.log(`Content ${index + 1} full object:`, content);
+          });
+        }
         setContentData(response.data);
       } catch (e) {
         handleAPIError(e, "콘텐츠 데이터 조회 실패");
       }
     };
 
-    if (selectedContentRequestId) {
+    if (selectedContentRequestId && userInfo) {
       getContentData();
     }
-  }, [selectedContentRequestId]);
+  }, [selectedContentRequestId, userInfo]);
 
   // 이미지 생성중인 항목이 있는지 확인하고 자동 새로고침
   useEffect(() => {
@@ -174,7 +188,7 @@ export default function ProjectPage() {
 
     let intervalId: NodeJS.Timeout;
 
-    if (hasGeneratingImage) {
+    if (hasGeneratingImage && userInfo) {
       intervalId = setInterval(async () => {
         try {
           const response = await apiCall({
@@ -193,11 +207,17 @@ export default function ProjectPage() {
           if (allImagesGenerated) {
             clearInterval(intervalId);
           }
-        } catch (e) {
-          handleAPIError(e, "콘텐츠 데이터 자동 새로고침 실패");
-          clearInterval(intervalId);
+        } catch (e: any) {
+          // Don't show error for rate limit during auto-refresh, just stop the interval
+          if (e?.response?.status === 429) {
+            console.log("Rate limit reached during auto-refresh, stopping interval");
+            clearInterval(intervalId);
+          } else {
+            handleAPIError(e, "콘텐츠 데이터 자동 새로고침 실패");
+            clearInterval(intervalId);
+          }
         }
-      }, 10000); // 10초마다 새로고침
+      }, 30000); // 30초마다 새로고침 (rate limit 방지)
     }
 
     return () => {
@@ -205,12 +225,29 @@ export default function ProjectPage() {
         clearInterval(intervalId);
       }
     };
-  }, [contentData.contentDataList, selectedContentRequestId]);
+  }, [contentData.contentDataList, selectedContentRequestId, userInfo]);
 
   const makingContent = async (inputProjectData?: any) => {
     if (isMakingLoading) return;
     try {
       setIsMakingLoading(true);
+      
+      // Add a small delay before making the request to help with rate limiting
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Create direction assignments for each content item
+      const availableDirections = contentSettings.directionList.length > 0 
+        ? contentSettings.directionList 
+        : ["정보형", "감성전달형", "홍보중심형"];
+      
+      const contentDirections = [];
+      for (let i = 0; i < 4; i++) {
+        contentDirections.push(availableDirections[i % availableDirections.length]);
+      }
+      
+      console.log("Selected directions:", contentSettings.directionList);
+      console.log("Content directions being sent:", contentDirections);
+      
       const response = await apiCall({
         url: "/content/request",
         method: "post",
@@ -230,18 +267,36 @@ export default function ProjectPage() {
             competitor: contentSettings.competitorToggle
               ? contentSettings.competitor
               : "",
+            contentDirections, // Include direction assignments within contentSettings
           },
           projectId,
           requestType: "create",
+          imageCount: 4, // Generate 4 images as required
         },
       });
       setSelectedContentRequestId(response.data.contentRequestId);
-    } catch (e) {
-      handleAPIError(e, "콘텐츠 생성 실패");
+    } catch (e: any) {
+      // Check if it's a rate limit error
+      if (e?.response?.status === 429) {
+        alert("OpenAI API 속도 제한에 도달했습니다. 잠시 후 다시 시도해주세요.");
+      } else {
+        handleAPIError(e, "콘텐츠 생성 실패");
+      }
     } finally {
       setIsMakingLoading(false);
     }
   };
+
+  // Show loading while checking authentication or if not logged in
+  if (!isLoginCheck || !userInfo) {
+    return (
+      <BodyContainer
+        sx={{ pt: { xs: "50px", md: "60px" }, pb: { xs: "40px", md: "40px" } }}
+      >
+        <CenterProgress />
+      </BodyContainer>
+    );
+  }
 
   return (
     <BodyContainer
@@ -439,8 +494,9 @@ export default function ProjectPage() {
                   fontSize: { xs: 14, md: 16 },
                 }}
                 onClick={() => makingContent()}
+                disabled={isMakingLoading}
               >
-                콘텐츠 생성하기
+                {isMakingLoading ? "생성 중..." : "콘텐츠 생성하기"}
               </Button>
             </Box>
           </motion.div>
@@ -558,44 +614,55 @@ export default function ProjectPage() {
                   }}
                   fixedWeekCount={false}
                   eventDisplay="background"
-                  eventContent={(eventInfo) => (
-                    <Box
-                      sx={{
-                        position: "relative",
-                        width: "100%",
-                        height: "100%",
-                        overflow: "hidden",
-                        borderRadius: 1,
-                      }}
-                    >
-                      {eventInfo.event.extendedProps.content.imageUrl ? (
-                        <img
-                          src={`${s3ImageUrl}/${eventInfo.event.extendedProps.content.imageUrl}`}
-                          alt="콘텐츠 이미지"
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "cover",
-                            display: "block",
-                          }}
-                        />
-                      ) : (
+                  eventContent={(eventInfo) => {
+                    const direction = eventInfo.event.extendedProps.content.direction || "정보형";
+                    console.log("Calendar event direction:", direction, "for content:", eventInfo.event.extendedProps.content);
+                    const directionColors = {
+                      "정보형": { bg: "#E3F2FD", border: "#2196F3", text: "#1565C0" },
+                      "감성전달형": { bg: "#F3E5F5", border: "#9C27B0", text: "#7B1FA2" },
+                      "홍보중심형": { bg: "#E8F5E8", border: "#4CAF50", text: "#388E3C" },
+                    };
+                    const colors = directionColors[direction as keyof typeof directionColors] || directionColors["정보형"];
+                    
+                    return (
+                      <Box
+                        sx={{
+                          position: "relative",
+                          width: "100%",
+                          height: "100%",
+                          overflow: "hidden",
+                          borderRadius: 1,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          backgroundColor: colors.bg,
+                          border: `1px solid ${colors.border}`,
+                          cursor: "pointer",
+                          transition: "all 0.2s ease",
+                          "&:hover": {
+                            backgroundColor: colors.bg,
+                            opacity: 0.8,
+                            transform: "scale(1.02)",
+                          },
+                        }}
+                      >
                         <Typography
                           sx={{
-                            position: "absolute",
-                            top: "50%",
-                            left: "50%",
-                            transform: "translate(-50%, -50%)",
-                            color: "grey.500",
-                            fontSize: { xs: 12, md: 13 },
-                            whiteSpace: "nowrap !important",
+                            color: colors.text,
+                            fontSize: { xs: 9, md: 11 },
+                            fontWeight: 700,
+                            textAlign: "center",
+                            lineHeight: 1.1,
+                            padding: "2px 4px",
+                            wordBreak: "break-word",
+                            letterSpacing: "-0.02em",
                           }}
                         >
-                          이미지 생성중
+                          {direction}
                         </Typography>
-                      )}
-                    </Box>
-                  )}
+                      </Box>
+                    );
+                  }}
                   eventClick={(info) => {
                     setSelectedContent(info.event.extendedProps.content);
                     setContentDetailModal(true);

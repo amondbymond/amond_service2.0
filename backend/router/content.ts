@@ -214,9 +214,9 @@ router.post("/request", isLogin, async function (req, res) {
 
   // 명시해야 정확한 개수로 생성
   const contentsNum = parseInt(contentSettings.uploadCycle[2]) * 4;
-  const imageRatio = parseInt(contentSettings.imageVideoRatio);
-  const imageNum = Math.round((imageRatio / 100) * contentsNum);
-  const videoNum = contentsNum - imageNum;
+  // Remove video ratio logic - all content will be image content
+  const imageNum = contentsNum;
+  const videoNum = 0;
 
   try {
     const limitCheck = await checkLimitUpdate({
@@ -262,8 +262,7 @@ url: ${projectData.url}
 * 개수와 날짜 구성 꼭 참고해서 해줘!
 
 ㅇ json은 subjectList, dateList로 구성해줘. 둘 다 ${contentsNum}개의 데이터가 들어가야 해. 둘 다 배열로 구성해줘.
-- subjectList: 업로드 주기에 맞춰 콘텐츠 주제를 생성해줘. 영상 콘텐츠인 경우, 앞에 "[영상]"을 붙여줘.
-영상 콘텐츠는 ${videoNum}개, 이미지 콘텐츠는 ${imageNum}개 생성해줘.
+- subjectList: 업로드 주기에 맞춰 콘텐츠 주제를 생성해줘. 모든 콘텐츠는 이미지 콘텐츠입니다.
 - dateList: 콘텐츠 업로드 날짜를 생성해줘.
 `;
 
@@ -283,8 +282,8 @@ url: ${projectData.url}
     const subjectToken = subjectResult.totalToken;
 
     // 콘텐츠 요청
-    const contentRequestSql = `INSERT INTO contentRequest(trendIssue, snsEvent, essentialKeyword, competitor, uploadCycle, toneMannerList, imageVideoRatio, imageRatio, directionList, searchResult, searchToken, subjectToken, createdAt, fk_projectId)
-    VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?);`;
+    const contentRequestSql = `INSERT INTO contentRequest(trendIssue, snsEvent, essentialKeyword, competitor, uploadCycle, toneMannerList, directionList, searchResult, searchToken, subjectToken, createdAt, fk_projectId)
+    VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?);`;
     const contentRequestResult = await queryAsync(contentRequestSql, [
       contentSettings.trendIssue || null,
       contentSettings.snsEvent || null,
@@ -292,8 +291,6 @@ url: ${projectData.url}
       contentSettings.competitor || null,
       contentSettings.uploadCycle,
       JSON.stringify(contentSettings.toneMannerList || []),
-      contentSettings.imageVideoRatio || null,
-      contentSettings.imageRatio || null,
       JSON.stringify(contentSettings.directionList || []),
       searchResult?.slice(0, 800) || null,
       searchToken,
@@ -303,15 +300,21 @@ url: ${projectData.url}
 
     const contentRequestId = contentRequestResult.insertId;
 
+    // Get the directionList from contentSettings
+    const directionList = contentSettings.contentDirections || contentSettings.directionList || [];
+
     for (let i = 0; i < subjectList.length; i++) {
       const subject = subjectList[i];
       const date = dateList[i];
+      // Assign direction to each content item (cycle through the directionList)
+      const direction = directionList[i % directionList.length] || "정보형";
 
-      const contentSql = `INSERT INTO content(postDate, subject, fk_contentRequestId)
-      VALUES(?, ?, ?);`;
+      const contentSql = `INSERT INTO content(postDate, subject, direction, fk_contentRequestId)
+      VALUES(?, ?, ?, ?);`;
       await queryAsync(contentSql, [
         date,
         subject?.slice(0, 60) || null,
+        direction,
         contentRequestId,
       ]);
     }
@@ -336,14 +339,14 @@ async function createContent(contentRequestId: number) {
 
     const ogSecondPrompt = await loadPrompt("2차", { contentRequestId });
 
-    // 4개씩 그룹으로 나누기
-    const chunkSize = 4;
-    for (let i = 0; i < contentResult.length; i += chunkSize) {
-      const chunk = contentResult.slice(i, i + chunkSize);
+    // Process content in batches of 4 for maximum speed
+    const batchSize = 4;
+    for (let i = 0; i < contentResult.length; i += batchSize) {
+      const batch = contentResult.slice(i, i + batchSize);
 
-      // 4개씩 병렬 처리
+      // Process batch in parallel for maximum speed
       await Promise.all(
-        chunk.map(
+        batch.map(
           async (content: {
             id: number;
             subject: string;
@@ -361,25 +364,18 @@ async function createContent(contentRequestId: number) {
                   subject
                 );
 
-                const isVideo = subject.includes("[영상]");
-                if (isVideo) {
-                  currentPrompt =
-                    currentPrompt +
-                    `\n* 잊지 말고 영상 스크립트(videoScript)도 한글로 잘 작성해서 json에 포함해줘!!`;
-                } else {
-                  currentPrompt =
-                    currentPrompt +
-                    `\n- 영상 스크립트(videoScript)는 생성하지 않아도 된단다`;
-                }
+                // Remove video script logic - all content is image content
+                currentPrompt =
+                  currentPrompt +
+                  `\n- 영상 스크립트(videoScript)는 생성하지 않아도 된단다`;
 
                 const role = `너는 인스타그램 마케팅 전문가야. 사용자가 입력하는 값을 확인하고 콘텐츠를 생성해줘.
-필요한 내용은 이미지를 생성하기 위한 프롬프트, 캡션, 비디오 스크립트야.
+필요한 내용은 이미지를 생성하기 위한 프롬프트, 캡션입니다.
 
-ㅇ JSON 형식으로 생성해주는데 aiPrompt, caption, videoScript로 구성해줘.
-- aiPrompt는 내용을 바탕으로 이미지 프롬프트를 작성해줘. 영상도 일단 똑같이 이미지를 생성할거야. 영문으로 작성해줘!
+ㅇ JSON 형식으로 생성해주는데 aiPrompt, caption로 구성해줘.
+- aiPrompt는 내용을 바탕으로 이미지 프롬프트를 작성해줘. 영문으로 작성해줘!
 - caption은 내용을 바탕으로 잘 작성해줘. 해시태그까지 포함해서 평문으로 쭉 작성해줘. 한글로 작성해줘!
-본문 내용이 길면 문단 구분도 잘 해줘! 그리고 뒷 부분에 해시태그를 나열할 때는 두 번 줄바꿈하고 작성해줘! 
-- videoScript는 영상 스크립트를 한글로 작성해줘!`;
+본문 내용이 길면 문단 구분도 잘 해줘! 그리고 뒷 부분에 해시태그를 나열할 때는 두 번 줄바꿈하고 작성해줘!`;
 
                 const textResult = await gptChatCompletion({
                   role,
@@ -389,24 +385,32 @@ async function createContent(contentRequestId: number) {
                 });
 
                 const textToken = textResult.totalToken;
-                const contentSql = `UPDATE content SET aiPrompt = ?, caption = ?, videoScript = ?, textToken = ? WHERE id = ?`;
+                const contentSql = `UPDATE content SET aiPrompt = ?, caption = ?, textToken = ? WHERE id = ?`;
                 await queryAsync(contentSql, [
                   textResult.message?.aiPrompt?.slice(0, 300),
                   textResult.message?.caption?.slice(0, 500),
-                  isVideo
-                    ? textResult.message?.videoScript?.slice(0, 500) || null
-                    : null,
                   textToken,
                   id,
                 ]);
               }
 
-              // 이미지 생성
-              createImage(id);
+              // 이미지 생성 with smart rate limiting
+              try {
+                await createImage(id);
+              } catch (error) {
+                console.error(`Image generation failed for content ${id}:`, error);
+                // Continue with next content even if this one fails
+              }
             }
           }
         )
       );
+
+      // Shorter delay between batches for faster processing
+      if (i + batchSize < contentResult.length) {
+        console.log(`✓ Completed batch ${Math.floor(i / batchSize) + 1}, waiting 1.5 seconds before next batch...`);
+        await new Promise(resolve => setTimeout(resolve, 1500)); // Reduced to 1.5 seconds
+      }
     }
   } catch (e) {
     console.error(e);
@@ -426,54 +430,76 @@ export async function createImage(id: number) {
 
     let imageUrl = "";
     let imageToken = 0;
-    if (imageList === "") {
-      const imageResult = await gptImageCreate({
-        prompt: aiPrompt,
-        saveImageName: `${createHashId(id)}`,
-        size:
-          imageRatio === "2:3"
-            ? "1024x1536"
-            : imageRatio === "3:2"
-            ? "1536x1024"
-            : "1024x1024",
-      });
-      imageUrl = imageResult.imageUrl;
-      imageToken = imageResult.token;
+    
+    // Fast retry logic for rate limit errors
+    const maxRetries = 1; // Single retry for speed
+    let retryCount = 0;
+    
+    while (retryCount <= maxRetries) {
+      try {
+        if (imageList === "") {
+          const imageResult = await gptImageCreate({
+            prompt: aiPrompt,
+            saveImageName: `${createHashId(id)}`,
+            size:
+              imageRatio === "2:3"
+                ? "1024x1536"
+                : imageRatio === "3:2"
+                ? "1536x1024"
+                : "1024x1024",
+          });
+          imageUrl = imageResult.imageUrl;
+          imageToken = imageResult.token;
+        } else {
+          // 이미지 리스트를 배열로 변환
+          const imageArray = imageList.split(",");
+          // id를 기준으로 순환하는 이미지 선택 (-1로 첫 이미지부터 순환)
+          const selectedImageIndex = (id - 1) % imageArray.length;
+          const selectedImage = imageArray[selectedImageIndex];
 
-      const updateSql = `UPDATE content SET imageUrl = ?, imageToken = ? WHERE id = ?`;
-      await queryAsync(updateSql, [imageUrl, imageToken, id]);
-    } else {
-      // 이미지 리스트를 배열로 변환
-      const imageArray = imageList.split(",");
-      // id를 기준으로 순환하는 이미지 선택 (-1로 첫 이미지부터 순환)
-      const selectedImageIndex = (id - 1) % imageArray.length;
-      const selectedImage = imageArray[selectedImageIndex];
+          const imageResult = await gptImageEdit({
+            imageUrl: selectedImage,
+            prompt: aiPrompt,
+            saveImageName: `${createHashId(id)}`,
+            size: imageRatio === "1:1" ? "1024x1024" : "1024x1536",
+          });
+          imageUrl = imageResult.imageUrl;
+          imageToken = imageResult.token;
+        }
 
-      const imageResult = await gptImageEdit({
-        imageUrl: selectedImage,
-        prompt: aiPrompt,
-        saveImageName: `${createHashId(id)}`,
-        size: imageRatio === "1:1" ? "1024x1024" : "1024x1536",
-      });
-      imageUrl = imageResult.imageUrl;
-      imageToken = imageResult.token;
+        // 이미지 URL 업데이트
+        const updateSql = `UPDATE content SET imageUrl = ?, imageToken = ? WHERE id = ?`;
+        await queryAsync(updateSql, [imageUrl, imageToken, id]);
+        
+        return imageUrl;
+      } catch (error: any) {
+        // 429 에러 체크 - rate limit exceeded
+        if (error.status === 429) {
+          retryCount++;
+          if (retryCount <= maxRetries) {
+            // Fast retry with minimal delay
+            console.log(`Rate limit hit for content ${id}, retry ${retryCount}/${maxRetries + 1} - waiting 1s...`);
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Just 1 second delay
+            continue;
+          } else {
+            // Max retries reached, log and continue
+            const updateLogSql = `UPDATE content SET imageLog = '429 limit exceeded after ${maxRetries + 1} attempts' WHERE id = ?`;
+            await queryAsync(updateLogSql, [id]);
+            console.log(`Image generation failed for content ${id} after ${maxRetries + 1} attempts due to rate limit`);
+            return null;
+          }
+        } else {
+          // Non-rate-limit error, log and continue
+          console.error(`Image generation failed for content ${id}:`, error.message);
+          const updateLogSql = `UPDATE content SET imageLog = 'Error: ${error.message?.slice(0, 100)}' WHERE id = ?`;
+          await queryAsync(updateLogSql, [id]);
+          return null;
+        }
+      }
     }
-
-    // 이미지 URL 업데이트
-    const updateSql = `UPDATE content SET imageUrl = ?, imageToken = ? WHERE id = ?`;
-    await queryAsync(updateSql, [imageUrl, imageToken, id]);
-
-    return imageUrl;
   } catch (e) {
-    console.error(e);
-    // 429 에러 체크
-    if ((e as any).status === 429) {
-      const updateLogSql = `UPDATE content SET imageLog = '429 limit' WHERE id = ?`;
-      await queryAsync(updateLogSql, [id]);
-    } else {
-      console.error(e, "읭");
-      throw e;
-    }
+    console.error(`Final error for content ${id}:`, e);
+    return null;
   }
 }
 
@@ -503,7 +529,7 @@ router.get("/detail", isLogin, async function (req, res) {
   const { contentRequestId } = req.query;
 
   try {
-    const contentRequestSql = `SELECT id, trendIssue, snsEvent, essentialKeyword, competitor, uploadCycle, toneMannerList, imageVideoRatio, imageRatio, directionList, createdAt FROM contentRequest
+    const contentRequestSql = `SELECT id, trendIssue, snsEvent, essentialKeyword, competitor, uploadCycle, toneMannerList, directionList, createdAt FROM contentRequest
       WHERE id = ?
       ORDER BY id DESC
       LIMIT 1`;
@@ -511,7 +537,7 @@ router.get("/detail", isLogin, async function (req, res) {
       contentRequestId,
     ]);
 
-    const contentSql = `SELECT id, postDate, subject, imageUrl, caption, videoScript FROM content
+    const contentSql = `SELECT id, postDate, subject, imageUrl, caption, direction FROM content
       WHERE fk_contentRequestId = ?
       ORDER BY id DESC`;
     const contentResult = await queryAsync(contentSql, [contentRequestId]);
@@ -608,26 +634,20 @@ router.put("/regenerate", isLogin, async function (req, res) {
         return res.status(200).json({ caption });
       } else if (requestType === "all") {
         // 피드백을 통한 전체 재생성인 경우
-        if (subject.includes("[영상]")) {
-          secondPrompt =
-            secondPrompt +
-            `\n\n- 잊지 말고 영상 스크립트(videoScript)도 한글로 잘 작성해줘!`;
-        } else {
-          secondPrompt =
-            secondPrompt +
-            `\n\n- 영상 스크립트(videoScript)는 생성하지 않아도 되니까 null로 넣어줘.`;
-        }
+        // Remove video script logic - all content is image content
+        secondPrompt =
+          secondPrompt +
+          `\n\n- 영상 스크립트(videoScript)는 생성하지 않아도 되니까 null로 넣어줘.`;
 
         secondPrompt =
           secondPrompt + `\n\n- 피드백을 참고해서 콘텐츠를 재생성해줘!\n-`;
 
         const role = `너는 인스타그램 마케팅 전문가야. 사용자가 입력하는 값을 확인하고 콘텐츠를 생성해줘.
-필요한 내용은 이미지를 생성하기 위한 프롬프트, 캡션, 비디오 스크립트야.
+필요한 내용은 이미지를 생성하기 위한 프롬프트, 캡션입니다.
 
-ㅇ JSON 형식으로 생성해주는데 aiPrompt, caption, videoScript로 구성해줘.
-- aiPrompt는 내용을 바탕으로 이미지 프롬프트를 작성해줘. 영상도 일단 똑같이 이미지를 생성할거야. 영문으로 작성해줘!
-- caption은 내용을 바탕으로 잘 작성해줘. 해시태그까지 포함해서 평문으로 쭉 작성해줘. 한글로 작성해줘!
-- videoScript는 영상 스크립트를 한글로 작성해줘!`;
+ㅇ JSON 형식으로 생성해주는데 aiPrompt, caption로 구성해줘.
+- aiPrompt는 내용을 바탕으로 이미지 프롬프트를 작성해줘. 영문으로 작성해줘!
+- caption은 내용을 바탕으로 잘 작성해줘. 해시태그까지 포함해서 평문으로 쭉 작성해줘. 한글로 작성해줘!`;
         const textResult = await gptChatCompletion({
           role,
           prompt: secondPrompt,
@@ -637,11 +657,10 @@ router.put("/regenerate", isLogin, async function (req, res) {
 
         const textToken = textResult.totalToken;
         const caption = textResult.message?.caption?.slice(0, 500);
-        const contentSql = `UPDATE content SET aiPrompt = ?, caption = ?, videoScript = ?, textToken = ? WHERE id = ?`;
+        const contentSql = `UPDATE content SET aiPrompt = ?, caption = ?, textToken = ? WHERE id = ?`;
         await queryAsync(contentSql, [
           textResult.message?.aiPrompt?.slice(0, 300),
           caption,
-          textResult.message?.videoScript?.slice(0, 500) || null,
           textToken,
           contentId,
         ]);

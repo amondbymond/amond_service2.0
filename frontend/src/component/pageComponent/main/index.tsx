@@ -222,6 +222,7 @@ function InputSection({
           reasonList: brandInput.reasonList,
           description: brandInput.description,
           imageNameList: images.map((image) => image.name),
+          imageCount: 4, // Generate 4 images as required
         },
       });
 

@@ -86,7 +86,7 @@ router.get("/content/getList/:page", isAdmin, async function (req, res) {
     searchSQL = `WHERE ${searchField} LIKE '%${searchInput}%'`;
   }
 
-  const sql = `SELECT id, postDate, subject, imageUrl, caption, videoScript FROM content
+  const sql = `SELECT id, postDate, subject, imageUrl, caption, direction FROM content
     ${searchSQL}
     ORDER BY ${orderField} ${order}
     LIMIT ${itemNumber.adminContent} OFFSET ${

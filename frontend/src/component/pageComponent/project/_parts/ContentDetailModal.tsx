@@ -66,7 +66,7 @@ export default function ContentDetailModal({
   const isTouchDevice =
     typeof window !== "undefined" &&
     ("ontouchstart" in window || navigator.maxTouchPoints > 0);
-  const [showScriptOverlay, setShowScriptOverlay] = useState(false);
+
 
   // 추가 수정
   const [isEditingCaption, setIsEditingCaption] = useState(false);
@@ -297,26 +297,12 @@ export default function ContentDetailModal({
               borderRadius: { xs: 0, md: "12px 0 0 12px" },
               overflow: "hidden",
               position: "relative",
-              cursor: content.videoScript ? "pointer" : "default",
+              cursor: "default",
               aspectRatio: imageRatio,
               width: "100%",
               maxWidth: "100%",
             }}
-            onClick={() => {
-              if (content.videoScript) {
-                setShowScriptOverlay(!showScriptOverlay);
-              }
-            }}
-            onMouseEnter={
-              !isTouchDevice && content.videoScript
-                ? () => setShowScriptOverlay(true)
-                : undefined
-            }
-            onMouseLeave={
-              !isTouchDevice && content.videoScript
-                ? () => setShowScriptOverlay(false)
-                : undefined
-            }
+            
           >
             {imageUrl ? (
               <CardMedia
@@ -348,78 +334,9 @@ export default function ContentDetailModal({
               </Box>
             )}
 
-            {content.videoScript && (
-              <Box
-                sx={{
-                  position: "absolute",
-                  top: 20,
-                  left: 20,
-                  zIndex: 2,
-                  bgcolor: "rgba(0,0,0,0.45)",
-                  borderRadius: "50%",
-                  width: { xs: 14, md: 28 },
-                  height: { xs: 14, md: 28 },
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 16 16"
-                  fill="white"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <circle cx="8" cy="8" r="8" fill="none" />
-                  <polygon points="6,4.5 12,8 6,11.5" fill="white" />
-                </svg>
-              </Box>
-            )}
 
-            {/* 오버레이 */}
-            {showScriptOverlay && content.videoScript && (
-              <Box
-                sx={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: "100%",
-                  height: "100%",
-                  bgcolor: "rgba(0,0,0,0.85)",
-                  color: "#fff",
-                  zIndex: 10,
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  px: { xs: "24px", md: "14px" },
-                }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowScriptOverlay(false);
-                }}
-              >
-                <Box>
-                  <Typography
-                    fontSize={{ xs: 12.5, md: 14 }}
-                    sx={{
-                      whiteSpace: "pre-wrap",
-                      // bgcolor: "rgba(255,255,255,0.07)",
-                      borderRadius: 2,
-                      p: 2,
-                      color: "#fff",
-                      height: "100%",
-                      width: "100%",
-                      maxWidth: 500,
-                    }}
-                  >
-                    {"(영상 스크립트)\n"}
-                    {content.videoScript}
-                  </Typography>
-                </Box>
-              </Box>
-            )}
+
+            
           </Grid>
 
           {/* 오른쪽: 캡션 등 */}

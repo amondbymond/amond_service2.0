@@ -19,7 +19,10 @@ export default function LoginSuccessPage() {
           const response = await apiCall({
             url: "/content/project/newUser",
             method: "put",
-            body: { projectId },
+            body: { 
+              projectId,
+              imageCount: 4, // Generate 4 images as required
+            },
           });
 
           if (response.data.message === "프로젝트 연결 성공") {

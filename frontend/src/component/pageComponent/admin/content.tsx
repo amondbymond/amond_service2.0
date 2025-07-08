@@ -175,7 +175,7 @@ function DetailModal({
   const isTouchDevice =
     typeof window !== "undefined" &&
     ("ontouchstart" in window || navigator.maxTouchPoints > 0);
-  const [showScriptOverlay, setShowScriptOverlay] = useState(false);
+
 
   const handleCopyCaption = async () => {
     try {
@@ -281,23 +281,9 @@ function DetailModal({
             borderRadius: { xs: 0, md: "12px 0 0 12px" },
             overflow: "hidden",
             position: "relative",
-            cursor: selectedContent.videoScript ? "pointer" : "default",
+            cursor: "default",
           }}
-          onClick={() => {
-            if (selectedContent.videoScript) {
-              setShowScriptOverlay(!showScriptOverlay);
-            }
-          }}
-          onMouseEnter={
-            !isTouchDevice && selectedContent.videoScript
-              ? () => setShowScriptOverlay(true)
-              : undefined
-          }
-          onMouseLeave={
-            !isTouchDevice && selectedContent.videoScript
-              ? () => setShowScriptOverlay(false)
-              : undefined
-          }
+
         >
           {imageUrl ? (
             <img
@@ -327,48 +313,7 @@ function DetailModal({
               이미지 생성중...
             </Box>
           )}
-          {/* 오버레이 */}
-          {showScriptOverlay && selectedContent.videoScript && (
-            <Box
-              sx={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                width: "100%",
-                height: "100%",
-                bgcolor: "rgba(0,0,0,0.85)",
-                color: "#fff",
-                zIndex: 10,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                px: { xs: "24px", md: "14px" },
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowScriptOverlay(false);
-              }}
-            >
-              <Box>
-                <Typography
-                  fontSize={{ xs: 12.5, md: 14 }}
-                  sx={{
-                    whiteSpace: "pre-wrap",
-                    // bgcolor: "rgba(255,255,255,0.07)",
-                    borderRadius: 2,
-                    p: 2,
-                    color: "#fff",
-                    height: "100%",
-                    width: "100%",
-                    maxWidth: 500,
-                  }}
-                >
-                  {selectedContent.videoScript}
-                </Typography>
-              </Box>
-            </Box>
-          )}
+
         </Grid>
 
         {/* 오른쪽: 캡션 등 */}
