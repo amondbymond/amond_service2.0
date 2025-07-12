@@ -14,8 +14,8 @@ cron.schedule("* * * * *", async () => {
   try {
     isProcessing = true;
 
-    // 429 limit이 발생한 이미지들 조회
-    const selectSql = `SELECT id FROM content WHERE imageLog = '429 limit'`;
+    // Rate limit이 발생한 이미지들 조회
+    const selectSql = `SELECT id FROM content WHERE imageLog = 'Rate limit exceeded'`;
     const failedImages = await queryAsync(selectSql);
 
     for (const image of failedImages) {

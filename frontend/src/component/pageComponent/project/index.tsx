@@ -162,13 +162,6 @@ export default function ProjectPage() {
             contentRequestId: selectedContentRequestId,
           },
         });
-        console.log("Received content data:", response.data);
-        if (response.data.contentDataList) {
-          response.data.contentDataList.forEach((content: any, index: number) => {
-            console.log(`Content ${index + 1} direction:`, content.direction);
-            console.log(`Content ${index + 1} full object:`, content);
-          });
-        }
         setContentData(response.data);
       } catch (e) {
         handleAPIError(e, "콘텐츠 데이터 조회 실패");
@@ -210,7 +203,6 @@ export default function ProjectPage() {
         } catch (e: any) {
           // Don't show error for rate limit during auto-refresh, just stop the interval
           if (e?.response?.status === 429) {
-            console.log("Rate limit reached during auto-refresh, stopping interval");
             clearInterval(intervalId);
           } else {
             handleAPIError(e, "콘텐츠 데이터 자동 새로고침 실패");
@@ -244,9 +236,6 @@ export default function ProjectPage() {
       for (let i = 0; i < 4; i++) {
         contentDirections.push(availableDirections[i % availableDirections.length]);
       }
-      
-      console.log("Selected directions:", contentSettings.directionList);
-      console.log("Content directions being sent:", contentDirections);
       
       const response = await apiCall({
         url: "/content/request",
@@ -615,8 +604,7 @@ export default function ProjectPage() {
                   fixedWeekCount={false}
                   eventDisplay="background"
                   eventContent={(eventInfo) => {
-                    const direction = eventInfo.event.extendedProps.content.direction || "정보형";
-                    console.log("Calendar event direction:", direction, "for content:", eventInfo.event.extendedProps.content);
+                    const direction = eventInfo.event.extendedProps.content.direction;
                     const directionColors = {
                       "정보형": { bg: "#E3F2FD", border: "#2196F3", text: "#1565C0" },
                       "감성전달형": { bg: "#F3E5F5", border: "#9C27B0", text: "#7B1FA2" },

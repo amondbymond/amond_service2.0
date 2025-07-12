@@ -57,11 +57,9 @@ export default function FindPasswordPage() {
               message: e?.response?.data?.message,
             });
           } else {
-            console.log(e);
             alert(e);
           }
         } else {
-          console.log(e);
           alert(e);
         }
       }

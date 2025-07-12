@@ -74,7 +74,6 @@ export default function PasswordChangePage() {
           message: e?.response?.data.message,
         });
       } else {
-        console.log(e);
         alert(e);
       }
     }

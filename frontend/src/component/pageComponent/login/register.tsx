@@ -157,7 +157,6 @@ export default function RegisterPage() {
             alert(e?.response?.data.message);
           }
         } else {
-          console.log(e);
           alert(e);
         }
       }

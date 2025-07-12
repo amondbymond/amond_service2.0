@@ -13,6 +13,8 @@ import {
   gptImageCreate,
   gptImageEdit,
 } from "../module/aiApi";
+import { scrapeImagesController } from "../module/imageScraper";
+import { generateBrandChatter, type BrandInput } from "../module/brandAnalysis";
 import moment from "moment-timezone";
 
 // ㅇ 프로젝트 (브랜드 정보)
@@ -483,7 +485,7 @@ export async function createImage(id: number) {
             continue;
           } else {
             // Max retries reached, log and continue
-            const updateLogSql = `UPDATE content SET imageLog = '429 limit exceeded after ${maxRetries + 1} attempts' WHERE id = ?`;
+            const updateLogSql = `UPDATE content SET imageLog = 'Rate limit exceeded' WHERE id = ?`;
             await queryAsync(updateLogSql, [id]);
             console.log(`Image generation failed for content ${id} after ${maxRetries + 1} attempts due to rate limit`);
             return null;
@@ -491,8 +493,23 @@ export async function createImage(id: number) {
         } else {
           // Non-rate-limit error, log and continue
           console.error(`Image generation failed for content ${id}:`, error.message);
-          const updateLogSql = `UPDATE content SET imageLog = 'Error: ${error.message?.slice(0, 100)}' WHERE id = ?`;
-          await queryAsync(updateLogSql, [id]);
+          
+          // Create a concise error message for database storage
+          let errorMsg = 'Connection error';
+          if (error.message) {
+            if (error.message.includes('Connection error')) {
+              errorMsg = 'Connection error';
+            } else if (error.message.includes('timeout')) {
+              errorMsg = 'Timeout error';
+            } else if (error.message.includes('rate limit')) {
+              errorMsg = 'Rate limit exceeded';
+            } else {
+              errorMsg = error.message.slice(0, 50); // Limit to 50 chars for database
+            }
+          }
+          
+          const updateLogSql = `UPDATE content SET imageLog = ? WHERE id = ?`;
+          await queryAsync(updateLogSql, [errorMsg, id]);
           return null;
         }
       }
@@ -774,5 +791,89 @@ async function checkLimitUpdate({
 
   return answer;
 }
+
+// Image scraping endpoint
+router.post("/scrape-images", scrapeImagesController);
+
+// Brand summary generation endpoint
+router.post("/brand-summary", isLogin, async function (req, res) {
+  const userId = req.user?.id;
+  const brandInput: BrandInput = req.body;
+
+  console.log('🚀 DEBUG: Brand summary request received');
+  console.log('🚀 DEBUG: User ID:', userId);
+  console.log('🚀 DEBUG: Brand input received:', {
+    brandName: brandInput.brandName,
+    category: brandInput.category,
+    reasons: brandInput.reasons,
+    description: brandInput.description?.substring(0, 100) + '...',
+    hasUrl: brandInput.hasUrl,
+    url: brandInput.url,
+    imageCount: brandInput.imageCount,
+    selectedImagesCount: brandInput.selectedImages?.length || 0
+  });
+
+  if (brandInput.selectedImages && brandInput.selectedImages.length > 0) {
+    console.log('📸 DEBUG: Selected images details:');
+    brandInput.selectedImages.forEach((image, index) => {
+      console.log(`📸 DEBUG: Image ${index + 1}:`, {
+        fileName: image.fileName,
+        type: image.type,
+        index: image.index,
+        hasBase64: !!image.base64,
+        hasUrl: !!image.url,
+        base64Length: image.base64?.length || 0,
+        url: image.url || 'N/A'
+      });
+    });
+  } else {
+    console.log('⚠️ DEBUG: No selected images provided');
+  }
+
+  try {
+    // Validate required fields
+    if (!brandInput.brandName || !brandInput.category || !brandInput.reasons || !brandInput.description) {
+      console.log('❌ DEBUG: Missing required fields');
+      return res.status(400).json({ 
+        error: '필수 필드가 누락되었습니다. 브랜드명, 카테고리, 운영이유, 설명을 모두 입력해주세요.' 
+      });
+    }
+
+    // Get user information for the analysis
+    // Since user table doesn't have a 'name' column, we'll use a fallback
+    const userName = `사용자-${userId}`;
+    const openaiApiKey = process.env.OPENAI_API_KEY;
+
+    if (!openaiApiKey) {
+      console.log('❌ DEBUG: OpenAI API key not found');
+      return res.status(500).json({ error: 'OpenAI API 키가 설정되지 않았습니다.' });
+    }
+
+    console.log('✅ DEBUG: Starting brand analysis with OpenAI');
+    
+    // Generate brand summary
+    const brandSummary = await generateBrandChatter(brandInput, userName, openaiApiKey);
+
+    console.log('✅ DEBUG: Brand analysis completed successfully');
+
+    // Return the summary in the expected format
+    res.status(200).json({ 
+      summary: brandSummary.formattedText,
+      data: brandSummary 
+    });
+
+  } catch (error) {
+    console.error('❌ ERROR: Brand summary generation failed:', error);
+    console.error('❌ ERROR: Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : 'No stack trace',
+      name: error instanceof Error ? error.name : 'Unknown error type'
+    });
+    res.status(500).json({ 
+      error: '브랜드 분석 중 오류가 발생했습니다.',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
 
 export default router;

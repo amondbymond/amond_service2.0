@@ -29,8 +29,7 @@ export default function LoginSuccessPage() {
             localStorage.removeItem("amondProjectId");
           }
         } catch (e) {
-          console.error(e);
-          handleAPIError(e, "프로젝트 연결 실패");
+          // Error handling for password change
         }
       }
 

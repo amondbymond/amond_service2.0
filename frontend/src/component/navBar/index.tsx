@@ -62,7 +62,6 @@ export default function NavBar() {
       setSidebarOpen(false);
       router.push("/login");
     } catch (e) {
-      console.log(e);
       alert(`로그아웃을 하는데 문제가 생겼습니다.\n${e}`);
     }
   };
@@ -112,7 +111,13 @@ export default function NavBar() {
                   transform: "translateX(-50%)",
                   zIndex: 1
                 }}>
-                  <Link href="/">
+                  <Link href="/" onClick={(e) => {
+                    // If we're already on the home page, dispatch custom event to reset onboarding
+                    if (router.pathname === '/') {
+                      e.preventDefault();
+                      window.dispatchEvent(new Event('reset-to-home'));
+                    }
+                  }}>
                     <CardMedia
                       component="img"
                       image="/logoHorizontalWhite.png"
@@ -443,7 +448,6 @@ function PasswordModal({
           message: e?.response?.data.message,
         });
       } else {
-        console.log(e);
         alert(e);
       }
     }

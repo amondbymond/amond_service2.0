@@ -47,7 +47,6 @@ export const handleAPIError = (e: any, failMessage: string) => {
       alert(`${e.response.data.message}`);
     }
   } else {
-    console.error(e);
     alert(`${failMessage}\n${e}`);
     throw e;
   }

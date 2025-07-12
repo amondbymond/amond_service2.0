@@ -122,7 +122,7 @@ export default function ProjectEditModal({
       alert("추가 내용을 입력해주세요.");
       return;
     } else if (newImages.length + keptImages.length < 1) {
-      alert("이미지를 최소 1장 이상 업로드해주세요.");
+      alert("이미지를 업로드해주세요.");
       return;
     }
 

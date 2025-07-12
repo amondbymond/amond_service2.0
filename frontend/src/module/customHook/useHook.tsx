@@ -14,7 +14,6 @@ export const TrackingRouteChange = () => {
   const router = useRouter();
 
   useEffect(() => {
-    // console.log("전 페이지 : ", sessionStorage.getItem("prevRoute"));
     return () => {
       // pathname은 dynamic []식으로 반환
       sessionStorage.setItem("prevRoute", router.asPath);
@@ -89,7 +88,6 @@ export const GetListPageOrderNSearch = ({
       const response = await apiCall(options);
       setDataList(response.data);
     } catch (e) {
-      console.error(e);
       handleAPIError(e, "목록 데이터");
     }
   };
@@ -100,7 +98,6 @@ export const GetListPageOrderNSearch = ({
       const response = await apiCall(options);
       setTotalNum(response.data.totalNum);
     } catch (e) {
-      console.error(e);
       handleAPIError(e, "개수 데이터");
     }
   };
@@ -156,7 +153,6 @@ export const GetListPageOrderNCategory = ({
       const response = await apiCall(options);
       setDataList(response.data);
     } catch (e) {
-      console.error(e);
       handleAPIError(e, "목록 데이터");
     }
   };
@@ -167,7 +163,6 @@ export const GetListPageOrderNCategory = ({
       const response = await apiCall(options);
       setTotalNum(response.data.totalNum);
     } catch (e) {
-      console.error(e);
       handleAPIError(e, "개수 데이터");
     }
   };
@@ -190,7 +185,6 @@ export const GoToProject = () => {
           router.push(`/project/${response.data.projectId}`);
         }
       } catch (e) {
-        console.error(e);
         handleAPIError(e, "프로젝트 이동 실패");
       }
     };

@@ -80,7 +80,6 @@ export default function LoginPage() {
           body,
         });
 
-        // console.log(res.data);
         setUserInfo(res.data);
 
         // 로컬 스토리지에 projectId 로드
@@ -99,7 +98,6 @@ export default function LoginPage() {
               localStorage.removeItem("amondProjectId");
             }
           } catch (e) {
-            console.error(e);
             handleAPIError(e, "프로젝트 연결 실패");
           }
         }
@@ -124,11 +122,9 @@ export default function LoginPage() {
               message: "비밀번호가 올바르지 않습니다!",
             });
           } else {
-            console.log(e);
             alert(e);
           }
         } else {
-          console.log(e);
           alert(e);
         }
       }

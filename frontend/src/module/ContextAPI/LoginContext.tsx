@@ -41,7 +41,7 @@ export const LoginProvider = ({ children }: { children: ReactNode }) => {
         setUserInfo(null);
       }
     } catch (e) {
-      console.log("로그인 X");
+      // User not logged in
     } finally {
       setIsLoginCheck(true);
     }
