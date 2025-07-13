@@ -67,10 +67,8 @@ jobs:
                 flatpak &&
               sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo &&
               sudo flatpak install -y flathub org.chromium.Chromium &&
-              sudo tee /usr/local/bin/chromium > /dev/null << 'CHROMIUM_SCRIPT'
-#!/bin/bash
-flatpak run org.chromium.Chromium \"\$@\"
-CHROMIUM_SCRIPT
+              echo '#!/bin/bash' | sudo tee /usr/local/bin/chromium > /dev/null &&
+              echo 'flatpak run org.chromium.Chromium \"\$@\"' | sudo tee -a /usr/local/bin/chromium > /dev/null &&
               sudo chmod +x /usr/local/bin/chromium &&
               sudo pip3 install instaloader requests
             elif command -v yum &> /dev/null; then
