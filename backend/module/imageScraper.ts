@@ -131,7 +131,22 @@ const handleInstagram = async (url: string): Promise<string[]> => {
     // Launch Puppeteer to take a screenshot of the Instagram page
     const browser = await puppeteer.launch({ 
         headless: true, 
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'] 
+        args: [
+            '--no-sandbox', 
+            '--disable-setuid-sandbox', 
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--disable-web-security',
+            '--disable-features=VizDisplayCompositor',
+            '--disable-extensions',
+            '--disable-plugins',
+            '--disable-images',
+            '--disable-javascript',
+            '--no-first-run',
+            '--no-default-browser-check',
+            '--disable-default-apps'
+        ],
+        executablePath: process.env.CHROME_BIN || undefined
     });
     
     try {
@@ -275,7 +290,22 @@ const handleGeneralWebsite = async (url: string): Promise<string[]> => {
     console.log(`PUPPETEER HANDLER: Starting scrape for ${url}`);
     const browser = await puppeteer.launch({ 
         headless: true, 
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'] 
+        args: [
+            '--no-sandbox', 
+            '--disable-setuid-sandbox', 
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--disable-web-security',
+            '--disable-features=VizDisplayCompositor',
+            '--disable-extensions',
+            '--disable-plugins',
+            '--disable-images',
+            '--disable-javascript',
+            '--no-first-run',
+            '--no-default-browser-check',
+            '--disable-default-apps'
+        ],
+        executablePath: process.env.CHROME_BIN || undefined
     });
     const page = await browser.newPage();
     
@@ -613,9 +643,31 @@ export const scrapeImagesController = async (req: Request, res: Response) => {
         return res.status(400).json({ error: 'URL is required.' });
     }
 
+    console.log(`Starting image scraping for URL: ${url}`);
+    
+    // Temporary debug logging - remove after testing
+    console.log('Environment check:', {
+        hasOpenAI: !!process.env.OPENAI_API_KEY,
+        hasYouTube: !!process.env.YOUTUBE_API_KEY,
+        openAILength: process.env.OPENAI_API_KEY?.length || 0,
+        youTubeLength: process.env.YOUTUBE_API_KEY?.length || 0
+    });
+
     try {
+        // Check if required environment variables are set
+        if (!process.env.OPENAI_API_KEY) {
+            console.error('OPENAI_API_KEY is not set');
+            return res.status(500).json({ error: 'OpenAI API key is not configured.' });
+        }
+
+        if (!process.env.YOUTUBE_API_KEY) {
+            console.warn('YOUTUBE_API_KEY is not set - YouTube scraping may fail');
+        }
+
         let imageUrls: string[] = [];
         const lowercasedUrl = url.toLowerCase();
+
+        console.log(`Processing URL type: ${lowercasedUrl.includes('youtube') ? 'YouTube' : lowercasedUrl.includes('instagram') ? 'Instagram' : 'General Website'}`);
 
         // ✅ Updated: route all YouTube types
         if (lowercasedUrl.includes('youtube.com/channel') ||
@@ -628,20 +680,41 @@ export const scrapeImagesController = async (req: Request, res: Response) => {
             imageUrls = await handleGeneralWebsite(url);
         }
 
+        console.log(`Found ${imageUrls.length} image URLs`);
+
         if (imageUrls.length === 0) {
             return res.status(404).json({ error: 'Could not find any suitable images on the provided URL.' });
         }
 
+        console.log('Converting images to base64...');
         const base64Images = await Promise.all(
             imageUrls.map(imageUrlToBase64)
         );
 
         const successfulImages = base64Images.filter(b64 => b64.length > 0);
+        console.log(`Successfully converted ${successfulImages.length} images to base64`);
 
         res.status(200).json({ images: successfulImages });
 
     } catch (error) {
-        console.error('Scraping failed:', error);
-        res.status(500).json({ error: 'An error occurred during the scraping process.' });
+        console.error('Scraping failed with detailed error:', {
+            message: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : undefined,
+            url: url
+        });
+        
+        // Provide more specific error messages
+        let errorMessage = 'An error occurred during the scraping process.';
+        if (error instanceof Error) {
+            if (error.message.includes('ENOTFOUND') || error.message.includes('ECONNREFUSED')) {
+                errorMessage = 'Unable to connect to the target website. Please check the URL and try again.';
+            } else if (error.message.includes('timeout')) {
+                errorMessage = 'Request timed out. The website may be slow or unavailable.';
+            } else if (error.message.includes('puppeteer')) {
+                errorMessage = 'Browser automation failed. This may be due to missing system dependencies.';
+            }
+        }
+        
+        res.status(500).json({ error: errorMessage });
     }
 };

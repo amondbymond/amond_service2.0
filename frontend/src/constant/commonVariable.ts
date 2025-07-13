@@ -36,7 +36,7 @@ export const reasonList = [
 /** 사업 카테고리 */
 export const categoryList = [
   "뷰티/미용",
-  "맛집/홈쿡",
+  "미식/푸드",
   "일상/트렌드",
   "패션",
   "자기개발",

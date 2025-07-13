@@ -21,7 +21,7 @@ This endpoint requires user authentication. Include your session token in the re
 ```typescript
 interface BrandInput {
   brandName: string; // 브랜드명
-  category: string; // 카테고리 (뷰티/미용, 맛집/홈쿡, etc.)
+  category: string; // 카테고리
   reasons: string[]; // 운영 이유 배열
   description: string; // 브랜드 설명
   hasUrl: boolean | null; // URL 보유 여부
@@ -111,7 +111,7 @@ interface BrandInput {
 The API supports the following categories with specialized content type recommendations:
 
 1. **뷰티/미용** - 효능 강조, 사용 후기, 신제품 소개, 이벤트, 성분 스토리, 사용법 공유, 브랜드 무드, 뷰티 꿀팁, 챌린지, 인플루언서
-2. **맛집/홈쿡** - 메뉴 소개, 후기 리그램, 시즌 메뉴, 할인 이벤트, 공간 무드, 레시피 공유, 운영 안내, 고객 인증샷, 음식 철학, 비하인드
+2. **미식/푸드** - 메뉴 소개, 후기 리그램, 시즌 메뉴, 할인 이벤트, 공간 무드, 레시피 공유, 운영 안내, 고객 인증샷, 음식 철학, 비하인드
 3. **일상/트렌드** - 일상 공유, 감성 무드, 트렌드 밈, 팔로워 소통, Q&A, 챌린지, 루틴 공개, 투표 유도, 공감 한줄, 소소한 팁
 4. **패션** - 착장 소개, 신상 오픈, 스타일링팁, 할인 공지, 후기 공유, 룩북 공개, 브랜드 무드, 소재 강조, 착용샷, 촬영 비하인드
 5. **자기개발** - 인사이트, 동기부여, 후기 인증, 강의 소개, 꿀팁 요약, 브랜딩 강조, 체크리스트, 컨설팅 홍보, 일상 회고, 성장 스토리
