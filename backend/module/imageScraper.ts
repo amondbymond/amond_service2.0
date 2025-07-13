@@ -400,13 +400,18 @@ export const scrapeImagesController = async (req: Request, res: Response) => {
         return res.status(400).json({ error: 'URL is required.' });
     }
 
-    console.log(`Starting image scraping for URL: ${url}`);
+    // Add this to your scrapeImagesController
+console.log('Environment check:', {
+    NODE_ENV: process.env.NODE_ENV,
+    CHROME_BIN: process.env.CHROME_BIN,
+    YOUTUBE_API_KEY: process.env.YOUTUBE_API_KEY ? 'Present' : 'Missing'
+});
 
     try {
         let imageUrls: string[] = [];
         const lowercasedUrl = url.toLowerCase();
 
-        console.log(`Processing URL type: ${lowercasedUrl.includes('youtube') ? 'YouTube' : lowercasedUrl.includes('instagram') ? 'Instagram' : 'General Website'}`);
+        
 
         // Route to appropriate handler
         if (lowercasedUrl.includes('youtube.com/channel') ||
@@ -419,7 +424,7 @@ export const scrapeImagesController = async (req: Request, res: Response) => {
             imageUrls = await handleGeneralWebsite(url);
         }
 
-        console.log(`Found ${imageUrls.length} image URLs`);
+        
 
         if (imageUrls.length === 0) {
             return res.status(404).json({ error: 'Could not find any suitable images on the provided URL.' });
@@ -431,17 +436,17 @@ export const scrapeImagesController = async (req: Request, res: Response) => {
         let finalImages: string[];
         
         if (isBase64Images) {
-            console.log('Images are already in base64 format, using directly');
+            
             finalImages = imageUrls.filter(img => img.length > 0);
         } else {
-            console.log('Converting URLs to base64...');
+            
             const base64Images = await Promise.all(
                 imageUrls.map(imageUrlToBase64)
             );
             finalImages = base64Images.filter(b64 => b64.length > 0);
         }
         
-        console.log(`Successfully processed ${finalImages.length} images`);
+        
 
         res.status(200).json({ images: finalImages });
 
