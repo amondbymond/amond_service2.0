@@ -34,7 +34,7 @@ jobs:
           GOOGLE_REFRESH_TOKEN=${{ secrets.GOOGLE_REFRESH_TOKEN }}
           KAKAO_REST_API=${{ secrets.KAKAO_REST_API }}
           YOUTUBE_API_KEY=${{ secrets.YOUTUBE_API_KEY }}
-          CHROME_BIN=/usr/bin/chromium-browser
+          CHROME_BIN=/usr/local/bin/chromium
           EOF
 
       - name: Setup Node.js
@@ -58,16 +58,35 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no -i key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "
             # Detect the package manager and install dependencies accordingly
-            if command -v yum &> /dev/null; then
-              # Amazon Linux / CentOS / RHEL
-              sudo yum update -y &&
-              # Install EPEL for additional packages on Amazon Linux
-              sudo yum install -y epel-release || true &&
-              sudo yum install -y \
-                chromium \
+            if command -v dnf &> /dev/null; then
+              # Amazon Linux 2023
+              sudo dnf update -y &&
+              sudo dnf install -y \
                 python3 \
                 python3-pip \
-                google-chrome-stable || sudo yum install -y chromium &&
+                wget \
+                unzip \
+                flatpak &&
+              # Install Chromium via Flatpak
+              sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo &&
+              sudo flatpak install -y flathub org.chromium.Chromium &&
+              # Create a wrapper script for Chromium
+              sudo tee /usr/local/bin/chromium > /dev/null <<'SCRIPT'
+#!/bin/bash
+flatpak run org.chromium.Chromium \"\$@\"
+SCRIPT
+              sudo chmod +x /usr/local/bin/chromium &&
+              sudo pip3 install instaloader requests
+            elif command -v yum &> /dev/null; then
+              # Amazon Linux 2 / CentOS / RHEL
+              sudo yum update -y &&
+              sudo yum install -y \
+                python3 \
+                python3-pip \
+                wget &&
+              # Install Google Chrome for Amazon Linux 2
+              wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo rpm --import - &&
+              sudo yum install -y https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm &&
               sudo pip3 install instaloader requests
             elif command -v apt-get &> /dev/null; then
               # Ubuntu / Debian
