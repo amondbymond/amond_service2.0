@@ -1,0 +1,122 @@
+name: Full Deployment with rsync and S3 Clear
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate .env for backend
+        run: |
+          cat <<EOF > backend/.env
+          NODE_ENV=${{ secrets.NODE_ENV }}
+          DB_HOST=${{ secrets.DB_HOST }}
+          DB_DATABASE=${{ secrets.DB_DATABASE }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          SESSION_SECRET=${{ secrets.SESSION_SECRET }}
+          CRYPTO_KEY=${{ secrets.CRYPTO_KEY }}
+          CRYPTO_DELETED_KEY=${{ secrets.CRYPTO_DELETED_KEY }}
+          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+          AWS_ACCESS_KEY=${{ secrets.AWS_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REFRESH_TOKEN=${{ secrets.GOOGLE_REFRESH_TOKEN }}
+          KAKAO_REST_API=${{ secrets.KAKAO_REST_API }}
+          YOUTUBE_API_KEY=${{ secrets.YOUTUBE_API_KEY }}
+          EOF
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          npm ci
+
+      - name: Create PEM file
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY }}" > key.pem
+          chmod 600 key.pem
+
+      - name: Deploy Backend via rsync to EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no -i key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "mkdir -p /home/${{ secrets.EC2_USER }}/${{ secrets.EC2_FOLDER_NAME }}/backend"
+
+          rsync -avz --delete --exclude 'node_modules' \
+            -e "ssh -i key.pem -o StrictHostKeyChecking=no" \
+            backend/ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/${{ secrets.EC2_FOLDER_NAME }}/backend
+
+          ssh -o StrictHostKeyChecking=no -i key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "
+            cd /home/${{ secrets.EC2_USER }}/${{ secrets.EC2_FOLDER_NAME }}/backend &&
+            npm install &&
+            pm2 restart ${{ secrets.PM2_PROCESS_NAME }} || pm2 start npm --name ${{ secrets.PM2_PROCESS_NAME }} -- start
+          "
+
+      - name: Install Chrome on EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no -i key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "
+            # Update package list
+            sudo apt-get update
+            
+            # Install Chrome dependencies
+            sudo apt-get install -y wget gnupg2
+            
+            # Add Google Chrome repository
+            wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+            echo 'deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main' | sudo tee /etc/apt/sources.list.d/google-chrome.list
+            
+            # Update and install Chrome
+            sudo apt-get update
+            sudo apt-get install -y google-chrome-stable
+            
+            # Verify Chrome installation
+            google-chrome --version
+            
+            # Set environment variable for Puppeteer
+            echo 'export CHROME_BIN=/usr/bin/google-chrome' | sudo tee -a /home/${{ secrets.EC2_USER }}/.bashrc
+            echo 'export CHROME_BIN=/usr/bin/google-chrome' | sudo tee -a /etc/environment
+            
+            # Restart PM2 to pick up new environment variables
+            pm2 restart ${{ secrets.PM2_PROCESS_NAME }}
+          "
+
+      - name: Build Frontend
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+
+      - name: Deploy Frontend to S3
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          aws s3 rm s3://${{ secrets.S3_BUCKET_NAME }}/ --recursive
+          aws s3 sync ./frontend/out s3://${{ secrets.S3_BUCKET_NAME }} --delete
+
+      - name: Invalidate CloudFront Cache
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_DIST_ID }} --paths "/*"
+
+      - name: Remove PEM file
+        run: rm key.pem

@@ -171,20 +171,31 @@ const handleInstagram = async (url: string): Promise<string[]> => {
         // Convert screenshot to base64
         const base64Screenshot = `data:image/jpeg;base64,${Buffer.from(screenshot).toString('base64')}`;
         
+        console.log('Sending screenshot to OpenAI for analysis...');
+        
         // Use OpenAI's vision model to analyze the screenshot
         const completion = await openai.chat.completions.create({
             model: "gpt-4o", // Use GPT-4 Vision model
             messages: [
                 {
                     role: "system",
-                    content: "You are a website image analyzer. Extract and return only the URLs of the 5 most visually representative and high-resolution images from Instagram posts. Focus on images that reflect interior design, food presentation (especially gelato), brand identity elements, and atmosphere. Return only image URLs, one per line, no other text."
+                    content: "You are a visual content selector. Your goal is to find the 5 most visually representative, high-resolution images from the brand. Focus on visual identity (logos, typography, color themes) and brand atmosphere and mood. Output: Return 5 direct image only, one per line. Do not include any text or captions."
                 },
                 {
                     role: "user",
                     content: [
                         {
                             type: "text",
-                            text: `Visit: ${url}\n\nReturn only the 5 most visually representative and high-resolution images from posts on this account.\n\nDo not include any captions, descriptions, titles, links, or surrounding text.\n\nFocus on images that reflect:\n- Interior design\n- Food presentation (especially gelato)\n- Brand identity elements\n- Atmosphere\n\nReturn only the images. No text at all.`
+                            text: `You are a visual content selector.
+Your goal is to find the 5 most visually representative, high-resolution images from the brand.
+
+Search Google Images, Pinterest, blog posts, or any publicly indexed websites that might include Instagram embeds or reposts.
+
+Focus on:
+- Visual identity (logos, typography, color themes)
+- Brand atmosphere and mood
+
+✅ Output: Return 5 direct image only, one per line. Do not include any text or captions.`
                         },
                         {
                             type: "image_url",
@@ -201,91 +212,49 @@ const handleInstagram = async (url: string): Promise<string[]> => {
         
         const response = completion.choices[0]?.message?.content || '';
         
-        // Extract image URLs from the response
-        const imageUrls = response
+        // DEBUG: Log the full OpenAI response
+        console.log('=== OPENAI RESPONSE DEBUG ===');
+        console.log('Full OpenAI response:', response);
+        console.log('Response length:', response.length);
+        console.log('Response type:', typeof response);
+        console.log('=== END OPENAI RESPONSE DEBUG ===');
+        
+        // Extract base64 images from the response
+        const base64Images = response
             .split('\n')
             .map(line => line.trim())
-            .filter(line => line.startsWith('http') && (line.includes('.jpg') || line.includes('.jpeg') || line.includes('.png') || line.includes('.webp')))
+            .filter(line => line.startsWith('data:image/') && line.includes('base64,'))
             .slice(0, 5); // Limit to 5 images
         
-        if (imageUrls.length === 0) {
-            // Fallback: try to extract images directly from the page
-            const directImages = await page.evaluate(() => {
-                const images = Array.from(document.querySelectorAll('img'));
-                return images
-                    .map(img => img.src)
-                    .filter(src => src && src.includes('instagram') && !src.includes('avatar'))
-                    .slice(0, 5);
-            });
+        console.log(`Extracted ${base64Images.length} base64 images from OpenAI response`);
+        
+        // If no base64 images found, try to extract URLs as fallback
+        if (base64Images.length === 0) {
+            console.log('No base64 images found, trying URL extraction as fallback...');
+            const imageUrls = response
+                .split('\n')
+                .map(line => line.trim())
+                .filter(line => line.startsWith('http') && (line.includes('.jpg') || line.includes('.jpeg') || line.includes('.png') || line.includes('.webp')))
+                .slice(0, 5);
             
-            return directImages;
+            console.log(`Fallback: Extracted ${imageUrls.length} image URLs`);
+            return imageUrls;
         }
         
-        return imageUrls;
+        return base64Images;
         
     } catch (error) {
         console.error('Instagram scraping failed:', error);
-        
-        // Fallback: Return some placeholder URLs or try basic scraping
-        const page = await browser.newPage();
-        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
-        
-        try {
-            await page.goto(url, { waitUntil: 'networkidle2', timeout: 15000 });
-            
-            const fallbackImages = await page.evaluate(() => {
-                const images = Array.from(document.querySelectorAll('img'));
-                return images
-                    .map(img => img.src)
-                    .filter(src => src && src.includes('instagram') && !src.includes('avatar'))
-                    .slice(0, 5);
-            });
-            
-            return fallbackImages;
-        } catch (fallbackError) {
-            console.error('Fallback scraping also failed:', fallbackError);
-            return [];
-        }
+        console.error('Error details:', {
+            message: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : undefined
+        });
+        return [];
     } finally {
         await browser.close();
     }
 };
 
-/**
- * Handles general websites using Puppeteer for deep scraping.
- */
-/**
- * Handles general websites using Puppeteer for deep scraping.
- * Gets 3-5 most important images excluding logos.
- */
-/**
- * Handles general websites using Puppeteer for deep scraping.
- * Gets 3-5 most important images excluding logos.
- */
-/**
- * Handles general websites using Puppeteer for deep scraping.
- * Gets 3-5 most important images excluding logos.
- */
-/**
- * Handles general websites using Puppeteer for deep scraping.
- * Gets 3-5 most important images excluding logos.
- */
-/**
- * Handles general websites using Puppeteer for deep scraping.
- * Gets 3-5 most important images excluding logos.
- */
-/**
- * Handles general websites using Puppeteer for deep scraping.
- * Gets 3-5 most important images excluding logos.
- */
-/**
- * Handles general websites using Puppeteer for deep scraping.
- * Gets 3-5 most important images excluding logos.
- */
-/**
- * Handles general websites using Puppeteer for deep scraping.
- * Gets 3-5 most important images excluding logos.
- */
 const handleGeneralWebsite = async (url: string): Promise<string[]> => {
     console.log(`PUPPETEER HANDLER: Starting scrape for ${url}`);
     const browser = await puppeteer.launch({ 
@@ -686,15 +655,29 @@ export const scrapeImagesController = async (req: Request, res: Response) => {
             return res.status(404).json({ error: 'Could not find any suitable images on the provided URL.' });
         }
 
-        console.log('Converting images to base64...');
-        const base64Images = await Promise.all(
-            imageUrls.map(imageUrlToBase64)
-        );
+        console.log('Processing images...');
+        
+        // Check if we already have base64 images (from Instagram) or need to convert URLs
+        const isBase64Images = imageUrls.length > 0 && imageUrls[0].startsWith('data:image/');
+        
+        let finalImages: string[];
+        
+        if (isBase64Images) {
+            // Images are already in base64 format (from Instagram)
+            console.log('Images are already in base64 format, using directly');
+            finalImages = imageUrls.filter(img => img.length > 0);
+        } else {
+            // Convert URLs to base64
+            console.log('Converting URLs to base64...');
+            const base64Images = await Promise.all(
+                imageUrls.map(imageUrlToBase64)
+            );
+            finalImages = base64Images.filter(b64 => b64.length > 0);
+        }
+        
+        console.log(`Successfully processed ${finalImages.length} images`);
 
-        const successfulImages = base64Images.filter(b64 => b64.length > 0);
-        console.log(`Successfully converted ${successfulImages.length} images to base64`);
-
-        res.status(200).json({ images: successfulImages });
+        res.status(200).json({ images: finalImages });
 
     } catch (error) {
         console.error('Scraping failed with detailed error:', {
