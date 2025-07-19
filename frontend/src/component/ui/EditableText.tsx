@@ -29,7 +29,7 @@ export default function EditableText({
 }: EditableTextProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [currentText, setCurrentText] = useState(text);
-  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
+  const inputRef = useRef<any>(null);
   const textRef = useRef<HTMLSpanElement>(null);
   const [textWidth, setTextWidth] = useState('auto');
 
