@@ -176,8 +176,8 @@ router.post("/inicis/generate-hashes", async function (req, res) {
         buyerEmail: buyeremail,
         goodName: goodname,
         returnUrl: isProduction 
-          ? "https://service.mond.io.kr/api/payment/inicis/return"
-          : "http://localhost:3000/api/payment/inicis/return",
+          ? "https://service.mond.io.kr/payment/inicis-return"
+          : "http://localhost:3000/payment/inicis-return",
         closeUrl: isProduction
           ? "https://service.mond.io.kr/payment/billing-close"
           : "http://localhost:3000/payment/billing-close"
@@ -220,12 +220,38 @@ router.post("/inicis/issue-billing-key", async function (req, res) {
       });
     }
 
+    // idc_name을 기반으로 올바른 authUrl 구성 (PHP 샘플과 동일)
+    let correctAuthUrl: string;
+    const baseUrl = "stdpay.inicis.com/api/payAuth";
+    switch (idc_name) {
+      case 'fc':
+        correctAuthUrl = `https://fc${baseUrl}`;
+        break;
+      case 'ks':
+        correctAuthUrl = `https://ks${baseUrl}`;
+        break;
+      case 'stg':
+        correctAuthUrl = `https://stg${baseUrl}`;
+        break;
+      default:
+        return res.status(400).json({
+          success: false,
+          message: `지원하지 않는 IDC name: ${idc_name}`
+        });
+    }
+
+    // authUrl 검증 (보안을 위해)
+    if (correctAuthUrl !== authUrl) {
+      console.log(`authUrl mismatch - expected: ${correctAuthUrl}, received: ${authUrl}`);
+      // 테스트 환경에서는 경고만 출력하고 계속 진행
+    }
+
     // 타임스탬프 생성
     const timestamp = new Date().getTime().toString();
     
     // INICIS Step 3 빌링키 발급용 해시 생성 (공식 샘플과 동일하게)
     const signatureData = `authToken=${authToken}&timestamp=${timestamp}`;
-    const verificationData = signatureData + config.signKey;
+    const verificationData = `authToken=${authToken}&signKey=${config.signKey}&timestamp=${timestamp}`;
     
     // 서명 해시 생성
     const signature = generateSHA256Hash(signatureData);
@@ -238,8 +264,8 @@ router.post("/inicis/issue-billing-key", async function (req, res) {
       timestamp: timestamp,
       signature: signature,
       verification: verification,
-      orderNumber: orderNumber,
-      idc_name: idc_name
+      charset: "UTF-8",
+      format: "JSON"
     };
 
     console.log("빌링키 발급 요청 데이터:", {
@@ -247,33 +273,82 @@ router.post("/inicis/issue-billing-key", async function (req, res) {
       authToken: authToken.substring(0, 10) + "...", // 보안을 위해 일부만 로그
       verification: verification.substring(0, 10) + "..."
     });
+    console.log(`Using authUrl: ${correctAuthUrl}`);
 
     // INICIS authUrl로 빌링키 발급 요청
-    const response = await axios.post(authUrl, billingKeyRequestData, {
+    // INICIS는 form-urlencoded 형식을 요구함
+    // PHP 샘플과 동일하게 각 파라미터를 URL 인코딩
+    const formData = Object.entries(billingKeyRequestData)
+      .map(([key, value]) => {
+        return `${encodeURIComponent(key)}=${encodeURIComponent(value as string)}`;
+      })
+      .join('&');
+
+    console.log("Form data being sent:", formData);
+
+    const response = await axios.post(correctAuthUrl, formData, {
       headers: {
-        "Content-Type": "application/json",
-        "INICIS-API-KEY": config.apiKey,
-        "INICIS-API-IV": config.apiIv
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Accept": "*/*"
       },
-      timeout: 30000 // 30초 타임아웃
+      timeout: 30000, // 30초 타임아웃
+      validateStatus: function (status) {
+        return status < 500; // 500 미만의 상태 코드는 모두 성공으로 처리
+      }
     });
 
-    const billingKeyResult = response.data;
-    console.log("INICIS 빌링키 발급 응답:", billingKeyResult);
+    console.log("INICIS Response Status:", response.status);
+    console.log("INICIS Response Headers:", response.headers);
+    console.log("INICIS Response Data Type:", typeof response.data);
+    console.log("INICIS Raw Response:", response.data);
+
+    // 응답이 문자열인 경우 JSON으로 파싱 시도
+    let billingKeyResult = response.data;
+    if (typeof response.data === 'string') {
+      try {
+        billingKeyResult = JSON.parse(response.data);
+      } catch (parseError) {
+        console.error("Failed to parse INICIS response as JSON:", parseError);
+        // HTML 응답인 경우 에러 메시지 추출 시도
+        const errorMatch = response.data.match(/<title>(.*?)<\/title>/i) || 
+                          response.data.match(/오류.*?:(.*?)(?:<|$)/i) ||
+                          response.data.match(/error.*?:(.*?)(?:<|$)/i);
+        if (errorMatch) {
+          return res.status(400).json({
+            success: false,
+            message: `INICIS 오류: ${errorMatch[1].trim()}`,
+            rawResponse: response.data.substring(0, 500) // 처음 500자만
+          });
+        }
+      }
+    }
+
+    console.log("INICIS 빌링키 발급 응답 (파싱됨):", billingKeyResult);
 
     // INICIS 응답 검증
-    if (billingKeyResult.resultCode === "00") {
+    if (billingKeyResult.resultCode === "0000" || billingKeyResult.resultCode === "00") {
       // 성공 응답
+      // INICIS 빌링키는 tid를 사용 (테스트 환경에서는 tid가 빌링키 역할)
+      const billingKey = billingKeyResult.tid || billingKeyResult.billKey;
+      const cardNumber = billingKeyResult.CARD_Num || billingKeyResult.cardNumber || billingKeyResult.cardNum;
+      const cardName = billingKeyResult.P_FN_NM || billingKeyResult.cardName || billingKeyResult.CARD_BankCode;
+      
+      console.log("빌링키 발급 성공:", {
+        billingKey: billingKey,
+        cardNumber: cardNumber,
+        cardName: cardName
+      });
+      
       res.status(200).json({
         success: true,
         data: {
-          billKey: billingKeyResult.billKey,
+          billKey: billingKey, // tid를 빌링키로 사용
           tid: billingKeyResult.tid,
           applDate: billingKeyResult.applDate,
           applTime: billingKeyResult.applTime,
           orderNumber: orderNumber,
-          cardNumber: billingKeyResult.cardNumber,
-          cardName: billingKeyResult.cardName
+          cardNumber: cardNumber,
+          cardName: cardName
         }
       });
     } else {
@@ -357,11 +432,16 @@ router.post("/inicis/save-billing-key", isLogin, async function (req, res) {
       ) VALUES (?, ?, ?, ?, ?, 'active', NOW())
     `;
 
+    // 카드번호 마스킹 처리 (중간 자리수는 *로 표시)
+    const maskedCardNumber = cardNumber.includes('*') 
+      ? cardNumber // 이미 마스킹된 경우
+      : cardNumber.slice(-4); // 마지막 4자리만 저장
+
     const result = await queryAsync(insertSql, [
       requestUserId,
       orderNumber,
       billingKey,
-      cardNumber.slice(-4), // 마지막 4자리만 저장 (보안)
+      maskedCardNumber,
       cardName
     ]);
 
@@ -794,6 +874,92 @@ router.post("/inicis/return",
     errorParams.append('message', 'Internal server error occurred');
     
     return res.redirect(`http://localhost:3000/payment/success?${errorParams.toString()}`);
+  }
+});
+
+/**
+ * 구독 취소
+ * POST /payment/inicis/cancel-subscription
+ */
+router.post("/inicis/cancel-subscription", isLogin, async function (req, res) {
+  try {
+    const userId = req.user?.id;
+
+    // 현재 활성 구독 확인
+    const activeSubscription = await queryAsync(
+      `SELECT * FROM payment_subscriptions 
+       WHERE fk_userId = ? AND status = 'active'`,
+      [userId]
+    );
+
+    if (activeSubscription.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "활성 구독을 찾을 수 없습니다."
+      });
+    }
+
+    // 구독 상태를 'cancelled'로 변경 (즉시 취소가 아닌 기간 만료 후 취소)
+    await queryAsync(
+      `UPDATE payment_subscriptions 
+       SET status = 'cancelled', 
+           updatedAt = NOW() 
+       WHERE fk_userId = ? AND status = 'active'`,
+      [userId]
+    );
+
+    // 빌링키 비활성화 (자동 결제 중지)
+    await queryAsync(
+      `UPDATE billing_keys 
+       SET status = 'inactive', 
+           updatedAt = NOW() 
+       WHERE fk_userId = ? AND status = 'active'`,
+      [userId]
+    );
+
+    // 사용자의 membershipStatus 업데이트
+    await queryAsync(
+      `UPDATE user 
+       SET membershipStatus = 'cancelled'
+       WHERE id = ?`,
+      [userId]
+    );
+
+    // 취소 로그 기록
+    await queryAsync(
+      `INSERT INTO payment_logs (
+        fk_userId,
+        orderNumber,
+        price,
+        goodName,
+        buyerName,
+        buyerEmail,
+        buyerTel,
+        paymentStatus,
+        inicisResponse,
+        createdAt
+      ) VALUES (?, ?, 0, '구독 취소', '사용자 요청', '', '', 'cancelled', ?, NOW())`,
+      [
+        userId,
+        `CANCEL_${Date.now()}`,
+        JSON.stringify({ reason: '사용자 요청으로 구독 취소', cancelledAt: new Date() })
+      ]
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "구독이 취소되었습니다. 현재 결제 기간이 끝날 때까지 서비스를 이용하실 수 있습니다.",
+      data: {
+        endDate: activeSubscription[0].nextBillingDate
+      }
+    });
+
+  } catch (error) {
+    console.error("구독 취소 에러:", error);
+    res.status(500).json({
+      success: false,
+      message: "구독 취소 중 오류가 발생했습니다."
+    });
   }
 });
 

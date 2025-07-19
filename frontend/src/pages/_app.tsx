@@ -12,6 +12,7 @@ import { LoginProvider } from "@/module/ContextAPI/LoginContext";
 import NavBar from "@/component/navBar";
 import Footer from "@/component/footer";
 import { UseMainHook } from "@/module/customHook/useHook";
+import FloatingKakaoButton from "@/component/ui/FloatingKakaoButton";
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
@@ -40,6 +41,7 @@ function AppInner({
         <Component {...pageProps} />
       </main>
       <Footer />
+      <FloatingKakaoButton />
     </Container>
   );
 }

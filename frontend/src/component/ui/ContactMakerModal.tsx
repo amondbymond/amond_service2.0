@@ -4,8 +4,9 @@ import emailjs from "emailjs-com";
 
 const MESSAGE_TYPES = [
   "앱 오류 문의하기",
-  "결제 관련 문의하기",
+  "결제 관련 문의하기", 
   "개발자에게 의견 남기기",
+  "카카오톡으로 빠른 문의",
 ];
 
 export default function ContactMakerModal({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -19,6 +20,11 @@ export default function ContactMakerModal({ open, onClose }: { open: boolean; on
   const [error, setError] = useState("");
 
   const handleTypeSelect = (type: string) => {
+    if (type === "카카오톡으로 빠른 문의") {
+      window.open("http://pf.kakao.com/_CjqWn/chat", "_blank");
+      handleClose();
+      return;
+    }
     setSelectedType(type);
     setStep(1);
   };
@@ -95,19 +101,21 @@ export default function ContactMakerModal({ open, onClose }: { open: boolean; on
                 key={type}
                 fullWidth
                 sx={{
-                  bgcolor: "#fff",
-                  color: "#222",
+                  bgcolor: type === "카카오톡으로 빠른 문의" ? "#FFF8E1" : "#fff",
+                  color: type === "카카오톡으로 빠른 문의" ? "#F57C00" : "#222",
                   fontWeight: 700,
                   fontSize: 18,
                   mb: 2,
                   borderRadius: 2,
                   boxShadow: 0,
-                  border: "none",
-                  '&:hover': { bgcolor: "#f0e6d6" },
+                  border: type === "카카오톡으로 빠른 문의" ? "1px solid #FFE0B2" : "none",
+                  '&:hover': { 
+                    bgcolor: type === "카카오톡으로 빠른 문의" ? "#FFE0B2" : "#f0e6d6" 
+                  },
                 }}
                 onClick={() => handleTypeSelect(type)}
               >
-                {type}
+                {type === "카카오톡으로 빠른 문의" ? "💬 " : ""}{type}
               </Button>
             ))}
           </>

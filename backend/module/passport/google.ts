@@ -31,8 +31,8 @@ export default () => {
             const emailDuplicate = email ? await crpytoSameResult(email) : null;
             const encryptedEmail = email ? await transEncrypt(email) : null;
 
-            const sql = `INSERT INTO user(authType, email, socialId, emailDuplicate, lastLoginAt, createdAt)
-              VALUES("구글", ?, ?, ?, NOW(), NOW());`;
+            const sql = `INSERT INTO user(authType, email, socialId, emailDuplicate, grade, lastLoginAt, createdAt)
+              VALUES("구글", ?, ?, ?, "basic", NOW(), NOW());`;
             const result = await queryAsync(sql, [
               encryptedEmail,
               id,
@@ -41,7 +41,7 @@ export default () => {
 
             return done(null, {
               id: result.insertId,
-              grade: "C",
+              grade: "basic",
               authType: "구글",
             } as any);
           } else {

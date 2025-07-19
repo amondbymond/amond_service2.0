@@ -1,8 +1,10 @@
-import { Box, Button, Typography, Paper, Divider, Modal, TextField, Checkbox, FormControlLabel } from "@mui/material";
-import { useState } from "react";
+import { Box, Typography, Paper, Divider, Modal, TextField, Checkbox, FormControlLabel, Chip } from "@mui/material";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { apiCall } from "@/module/utils/api";
 import InicisPayment from "@/component/pageComponent/subscribe/InicisPayment";
+import UnifiedButton from "@/component/ui/UnifiedButton";
+import ContactMakerModal from "@/component/ui/ContactMakerModal";
 
 type MuiButtonColor = 'primary' | 'secondary' | 'inherit' | 'success' | 'error' | 'info' | 'warning';
 
@@ -24,14 +26,14 @@ const plans = [
     name: "프로",
     description: "처음 아몬드를 접하고 경험하는 분들에게 추천해요",
     price: "9,900원/월",
-    highlight: "7일간 무료체험",
+    highlight: "구매하기",
     highlights: [
       { label: "월 콘텐츠 발행 횟수 (그리드)", value: "4세트" },
       { label: "콘텐츠별 수정 횟수", value: "3회" },
       { label: "기획도 생성", value: "4세트" },
       { label: "전담 매니저 SNS 컨설팅", value: "X" },
     ],
-    button: { label: "7일간 무료체험", color: "warning", type: "orange", disabled: false },
+    button: { label: "구매하기", color: "warning", type: "orange", disabled: false },
     recommend: true,
   },
   {
@@ -62,7 +64,13 @@ const plans = [
   },
 ];
 
-function PlanButton({ plan, onOrangeClick }: { plan: typeof plans[number]; onOrangeClick?: () => void }) {
+function PlanButton({ plan, onOrangeClick, currentPlan, membershipStatus, onManageClick }: { 
+  plan: typeof plans[number]; 
+  onOrangeClick?: () => void;
+  currentPlan?: string;
+  membershipStatus?: string;
+  onManageClick?: () => void;
+}) {
   const router = useRouter();
   const handleFreeTrial = async () => {
     try {
@@ -79,42 +87,70 @@ function PlanButton({ plan, onOrangeClick }: { plan: typeof plans[number]; onOra
       alert("프로젝트 이동 실패");
     }
   };
+  
+  // 프로 플랜이고 현재 프로 구독 중인 경우 (활성 상태)
+  if (plan.name === "프로" && currentPlan === "pro" && membershipStatus === "active") {
+    return (
+      <UnifiedButton
+        fullWidth
+        variant="colored"
+        sx={{ mb: 2, bgcolor: "#4CAF50", borderColor: "#4CAF50", '&:hover': { bgcolor: '#45a049', borderColor: '#45a049' } }}
+        onClick={onManageClick}
+      >
+        구독 관리
+      </UnifiedButton>
+    );
+  }
+  
+  // 프로 플랜이고 구독이 취소된 경우 - 다시 구독 가능
+  if (plan.name === "프로" && currentPlan === "pro" && membershipStatus === "cancelled") {
+    return (
+      <UnifiedButton
+        fullWidth
+        variant="colored"
+        sx={{ mb: 2 }}
+        onClick={onOrangeClick}
+      >
+        다시 구독하기
+      </UnifiedButton>
+    );
+  }
+  
   if (plan.button.type === "orange") {
     return (
-      <Button
+      <UnifiedButton
         fullWidth
-        variant="contained"
-        color="warning"
-        sx={{ fontWeight: 700, fontSize: 16, mb: 2, borderRadius: 2 }}
+        variant="colored"
+        sx={{ mb: 2 }}
         disabled={plan.button.disabled}
         onClick={onOrangeClick}
       >
         {plan.button.label}
-      </Button>
+      </UnifiedButton>
     );
   }
   if (plan.button.type === "black") {
     return (
-      <Button
+      <UnifiedButton
         fullWidth
-        variant="contained"
-        sx={{ bgcolor: "#222", color: "#fff", fontWeight: 700, fontSize: 16, mb: 2, borderRadius: 2, '&:hover': { bgcolor: '#111' } }}
+        variant="colored"
+        sx={{ mb: 2, bgcolor: "#222", borderColor: "#222", '&:hover': { bgcolor: '#111', borderColor: '#111' } }}
         disabled={plan.button.disabled}
         onClick={handleFreeTrial}
       >
         {plan.button.label}
-      </Button>
+      </UnifiedButton>
     );
   }
   return (
-    <Button
+    <UnifiedButton
       fullWidth
-      variant="contained"
-      sx={{ bgcolor: "#eee", color: "#888", fontWeight: 700, fontSize: 16, mb: 2, borderRadius: 2 }}
+      variant="white"
+      sx={{ mb: 2 }}
       disabled
     >
       {plan.button.label}
-    </Button>
+    </UnifiedButton>
   );
 }
 
@@ -126,6 +162,8 @@ function ProTrialModal({ open, onClose }: { open: boolean; onClose: () => void }
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [inicisModalOpen, setInicisModalOpen] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [contactModalOpen, setContactModalOpen] = useState(false);
 
   return (
     <Modal open={open} onClose={onClose}>
@@ -190,62 +228,20 @@ function ProTrialModal({ open, onClose }: { open: boolean; onClose: () => void }
           결제 수단
         </Typography>
         <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
-          <Button 
-            variant={paymentMethod === 'card' ? "contained" : "outlined"} 
-            sx={{ 
-              flex: 1, 
-              fontWeight: 700, 
-              borderRadius: 2,
-              minHeight: 48,
-              ...(paymentMethod === 'card' && {
-                bgcolor: '#FFA726',
-                color: '#fff',
-                '&:hover': { bgcolor: '#FF9800' }
-              }),
-              ...(paymentMethod !== 'card' && {
-                borderColor: '#ddd',
-                color: '#666',
-                '&:hover': { 
-                  borderColor: '#FFA726', 
-                  color: '#FFA726',
-                  borderWidth: '2px',
-                  transform: 'translateY(-1px)',
-                  boxShadow: '0 4px 8px rgba(255, 167, 38, 0.2)'
-                }
-              })
-            }}
+          <UnifiedButton 
+            variant={paymentMethod === 'card' ? "colored" : "white"} 
+            sx={{ flex: 1 }}
             onClick={() => setPaymentMethod('card')}
           >
             신용 카드
-          </Button>
-          <Button 
-            variant={paymentMethod === 'bank' ? "contained" : "outlined"} 
-            sx={{ 
-              flex: 1, 
-              fontWeight: 700, 
-              borderRadius: 2,
-              minHeight: 48,
-              ...(paymentMethod === 'bank' && {
-                bgcolor: '#FFA726',
-                color: '#fff',
-                '&:hover': { bgcolor: '#FF9800' }
-              }),
-              ...(paymentMethod !== 'bank' && {
-                borderColor: '#ddd',
-                color: '#666',
-                '&:hover': { 
-                  borderColor: '#FFA726', 
-                  color: '#FFA726',
-                  borderWidth: '2px',
-                  transform: 'translateY(-1px)',
-                  boxShadow: '0 4px 8px rgba(255, 167, 38, 0.2)'
-                }
-              })
-            }}
+          </UnifiedButton>
+          <UnifiedButton 
+            variant={paymentMethod === 'bank' ? "colored" : "white"} 
+            sx={{ flex: 1 }}
             onClick={() => setPaymentMethod('bank')}
           >
             무통장 입금
-          </Button>
+          </UnifiedButton>
         </Box>
         
         {paymentMethod === 'bank' ? (
@@ -314,22 +310,51 @@ function ProTrialModal({ open, onClose }: { open: boolean; onClose: () => void }
           </>
         )}
         
-        <FormControlLabel control={<Checkbox />} label="전체 동의" sx={{ mb: 1 }} />
-        <Box sx={{ pl: 3, mb: 3 }}>
-          <FormControlLabel control={<Checkbox />} label="구매조건 확인 및 결제진행에 동의" />
+        <Box sx={{ mb: 3 }}>
+          <FormControlLabel 
+            control={
+              <Checkbox 
+                checked={agreedToTerms}
+                onChange={(e) => setAgreedToTerms(e.target.checked)}
+                sx={{
+                  color: '#FFA726',
+                  '&.Mui-checked': {
+                    color: '#FFA726',
+                  },
+                }}
+              />
+            } 
+            label="구매조건 확인 및 결제진행에 동의" 
+          />
         </Box>
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mt: 2 }}>
           <Box>
             <Typography fontWeight={700} fontSize={22}>
               ₩ 9,900원 / 월
             </Typography>
+            <UnifiedButton 
+              variant="white" 
+              sx={{ mt: 1, fontSize: 14 }} 
+              onClick={() => setContactModalOpen(true)}
+            >
+              문의 사항이 있으신가요?
+            </UnifiedButton>
           </Box>
-          <Box>
-            <Button 
-              variant="contained" 
-              color="warning" 
-              sx={{ fontWeight: 700, fontSize: 16, borderRadius: 2 }}
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <UnifiedButton 
+              variant="white" 
+              onClick={onClose}
+            >
+              취소
+            </UnifiedButton>
+            <UnifiedButton 
+              variant="colored" 
+              disabled={!agreedToTerms}
               onClick={() => {
+                if (!agreedToTerms) {
+                  alert('구매조건 확인 및 결제진행에 동의해주세요.');
+                  return;
+                }
                 if (paymentMethod === 'card') {
                   if (!name || !email || !phone) {
                     alert('이름, 이메일, 휴대폰 번호를 모두 입력해주세요.');
@@ -340,10 +365,7 @@ function ProTrialModal({ open, onClose }: { open: boolean; onClose: () => void }
               }}
             >
               {paymentMethod === 'bank' ? '무통장 입금 신청' : '프로 요금제로 업그레이드'}
-            </Button>
-            <Button variant="outlined" sx={{ ml: 2, color: '#888', borderColor: '#eee', fontWeight: 500, fontSize: 14, mt: 1 }} disabled>
-              문의 사항이 있으신가요?
-            </Button>
+            </UnifiedButton>
           </Box>
         </Box>
         
@@ -356,17 +378,100 @@ function ProTrialModal({ open, onClose }: { open: boolean; onClose: () => void }
           buyerEmail={email}
           buyerTel={phone}
         />
+        <ContactMakerModal 
+          open={contactModalOpen} 
+          onClose={() => setContactModalOpen(false)} 
+        />
       </Box>
     </Modal>
   );
 }
 
 export default function SubscribePage() {
+  const router = useRouter();
   const [proModalOpen, setProModalOpen] = useState(false);
+  const [userInfo, setUserInfo] = useState<any>(null);
+  const [currentPlan, setCurrentPlan] = useState<string>("basic");
+  const [membershipStatus, setMembershipStatus] = useState<string>("active");
+
+  useEffect(() => {
+    // 사용자 정보 가져오기
+    const fetchUserInfo = async () => {
+      try {
+        const response = await apiCall({
+          url: "/auth/user",
+          method: "GET",
+        });
+        console.log("User info:", response.data);
+        setUserInfo(response.data);
+        setCurrentPlan(response.data.grade || "basic");
+        setMembershipStatus(response.data.membershipStatus || "active");
+      } catch (error) {
+        console.error("Failed to fetch user info:", error);
+      }
+    };
+    fetchUserInfo();
+  }, []);
+
+  const handleManageSubscription = () => {
+    router.push("/profile");
+  };
+
   return (
     <Box sx={{ bgcolor: "#FFF3E0", minHeight: "100vh", pb: 6 }}>
       <ProTrialModal open={proModalOpen} onClose={() => setProModalOpen(false)} />
       <Box sx={{ maxWidth: 1400, mx: "auto", pt: 8, px: 2 }}>
+        {/* 현재 구독 상태 표시 */}
+        {currentPlan === 'pro' && membershipStatus === 'active' && (
+          <Box sx={{ 
+            mb: 4, 
+            p: 3, 
+            bgcolor: '#fff', 
+            borderRadius: 3,
+            border: '2px solid #FFA726',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}>
+            <Box>
+              <Typography fontSize={20} fontWeight={700} mb={1}>
+                🎉 현재 프로 멤버십을 이용 중입니다!
+              </Typography>
+              <Typography color="grey.600">
+                매월 더 많은 콘텐츠를 제작하고 편집할 수 있습니다.
+              </Typography>
+            </Box>
+            <UnifiedButton variant="colored" onClick={handleManageSubscription}>
+              구독 관리
+            </UnifiedButton>
+          </Box>
+        )}
+        
+        {/* 취소된 구독 상태 표시 */}
+        {currentPlan === 'pro' && membershipStatus === 'cancelled' && (
+          <Box sx={{ 
+            mb: 4, 
+            p: 3, 
+            bgcolor: '#fff', 
+            borderRadius: 3,
+            border: '2px solid #FF9800',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}>
+            <Box>
+              <Typography fontSize={20} fontWeight={700} mb={1} color="#FF9800">
+                구독이 취소되었습니다
+              </Typography>
+              <Typography color="grey.600">
+                현재 결제 기간이 끝나면 베이직 플랜으로 변경됩니다. 다시 구독하시면 프로 혜택을 계속 이용하실 수 있습니다.
+              </Typography>
+            </Box>
+            <UnifiedButton variant="colored" onClick={handleManageSubscription}>
+              프로필 보기
+            </UnifiedButton>
+          </Box>
+        )}
         <Box sx={{ display: 'flex', gap: 3, justifyContent: 'center', flexWrap: { xs: 'wrap', md: 'nowrap' }, overflowX: { xs: 'auto', md: 'visible' } }}>
           {plans.map((plan) => (
             <Box key={plan.name} sx={{ minWidth: 300, display: 'flex', flex: { xs: '0 0 auto', md: '1 1 0' }, maxWidth: { xs: 'none', md: '25%' } }}>
@@ -385,7 +490,7 @@ export default function SubscribePage() {
                   width: 1,
                 }}
               >
-                {plan.recommend && (
+                {plan.recommend && currentPlan !== 'pro' && (
                   <Box
                     sx={{
                       position: "absolute",
@@ -403,6 +508,42 @@ export default function SubscribePage() {
                     가장 추천해요
                   </Box>
                 )}
+                {currentPlan === 'pro' && plan.name === '프로' && membershipStatus === 'active' && (
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      top: 18,
+                      right: 18,
+                      bgcolor: "#4CAF50",
+                      color: "#fff",
+                      px: 1.5,
+                      py: 0.5,
+                      borderRadius: 2,
+                      fontWeight: 700,
+                      fontSize: 13,
+                    }}
+                  >
+                    현재 이용 중
+                  </Box>
+                )}
+                {currentPlan === 'pro' && plan.name === '프로' && membershipStatus === 'cancelled' && (
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      top: 18,
+                      right: 18,
+                      bgcolor: "#FF9800",
+                      color: "#fff",
+                      px: 1.5,
+                      py: 0.5,
+                      borderRadius: 2,
+                      fontWeight: 700,
+                      fontSize: 13,
+                    }}
+                  >
+                    구독 취소됨
+                  </Box>
+                )}
                 <Typography fontWeight={700} fontSize={28} mb={1} align="left">
                   {plan.name}
                 </Typography>
@@ -412,7 +553,13 @@ export default function SubscribePage() {
                 <Typography fontWeight={700} fontSize={24} mb={2} align="left">
                   {plan.price}
                 </Typography>
-                <PlanButton plan={plan} onOrangeClick={() => setProModalOpen(true)} />
+                <PlanButton 
+                  plan={plan} 
+                  onOrangeClick={() => setProModalOpen(true)} 
+                  currentPlan={currentPlan}
+                  membershipStatus={membershipStatus}
+                  onManageClick={handleManageSubscription}
+                />
                 <Divider sx={{ my: 2, width: "100%" }} />
                 <Typography fontWeight={700} fontSize={16} mb={1} align="left">
                   하이라이트

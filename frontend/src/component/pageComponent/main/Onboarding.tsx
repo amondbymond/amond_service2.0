@@ -261,12 +261,10 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
             brandInput={brandInput}
             images={images}
             scrapedImages={scrapedImages}
-            
             hasUrl={hasUrl}
-            
             selectedImages={selectedImages}
-            
             onGenerateContent={saveBrandInput}
+            onBrandInputChange={setBrandInput}
           />
         )}
       </Box>

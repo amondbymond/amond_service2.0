@@ -50,10 +50,18 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
 
       res.redirect(`/payment/result?${errorParams.toString()}`);
     }
+  } else if (req.method === 'GET') {
+    // GET 요청은 브라우저에서 직접 접근할 때 발생
+    console.log('GET request to return handler - showing info page');
+    res.status(200).json({
+      message: 'INICIS Payment Return Endpoint',
+      info: 'This endpoint is used by INICIS to send payment results via POST request.',
+      status: 'Ready to receive POST requests from INICIS',
+      timestamp: new Date().toISOString()
+    });
   } else {
-    // GET 요청 처리 (혹시 GET으로 오는 경우)
-    console.log('GET request to return handler');
-    const successParams = new URLSearchParams(req.query as Record<string, string>);
-    res.redirect(`/payment/result?${successParams.toString()}`);
+    // 다른 메서드는 허용하지 않음
+    res.setHeader('Allow', ['GET', 'POST']);
+    res.status(405).json({ error: 'Method not allowed' });
   }
 }

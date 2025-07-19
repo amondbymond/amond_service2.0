@@ -132,6 +132,14 @@ export default function UserSidebar({ onClose }: UserSidebarProps) {
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
           <Button
             variant="text"
+            sx={{ justifyContent: "flex-start", color: "#333", fontWeight: 600 }}
+            onClick={() => router.push("/profile")}
+            disabled={loading}
+          >
+            프로필
+          </Button>
+          <Button
+            variant="text"
             sx={{ justifyContent: "flex-start", color: "#333" }}
             onClick={() => router.push("/subscribe")}
             disabled={loading}
@@ -151,13 +159,6 @@ export default function UserSidebar({ onClose }: UserSidebarProps) {
             onClick={() => window.open(PRIV_URL, "_blank")}
           >
             개인정보처리방침
-          </Button>
-          <Button
-            variant="text"
-            sx={{ justifyContent: "flex-start", color: "#333" }}
-            onClick={() => router.push("/login/findPassword")}
-          >
-            비밀번호 변경
           </Button>
         </Box>
 

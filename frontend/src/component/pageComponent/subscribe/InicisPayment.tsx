@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Box, Button, Typography, Modal, TextField, Alert } from '@mui/material';
+import { Box, Typography, Modal, Alert } from '@mui/material';
 import { apiCall } from '@/module/utils/api';
+import UnifiedButton from '@/component/ui/UnifiedButton';
 
 interface InicisPaymentProps {
   open: boolean;
@@ -41,6 +42,7 @@ interface PaymentRequest {
   buyeremail: string;
   returnUrl: string;
   closeUrl: string;
+  acceptmethod?: string;
 }
 
 declare global {
@@ -64,11 +66,11 @@ export default function InicisPayment({
   const [error, setError] = useState<string | null>(null);
   const [inicisLoaded, setInicisLoaded] = useState(false);
 
-  // INICIS 테스트 환경 설정 (빌링용)
+  // INICIS 환경 설정 (빌링용) - 환경변수 기반
   const INICIS_CONFIG: InicisConfig = {
-    mid: 'INIBillTst',
-    signKey: 'SU5JTElURV9UUklQTEVERVNfS0VZU1RS',
-    url: 'https://stgstdpay.inicis.com/stdjs/INIStdPay.js', // 테스트 환경 URL
+    mid: process.env.NEXT_PUBLIC_INICIS_MID || 'INIBillTst',
+    signKey: process.env.NEXT_PUBLIC_INICIS_SIGNKEY || 'SU5JTElURV9UUklQTEVERVNfS0VZU1RS',
+    url: process.env.NEXT_PUBLIC_INICIS_URL || 'https://stgstdpay.inicis.com/stdjs/INIStdPay.js',
     version: '1.0',
     currency: 'WON',
     charset: 'UTF-8'
@@ -143,7 +145,7 @@ export default function InicisPayment({
     try {
       const orderData = {
         oid: generateOrderId(),
-        price: planPrice.toString(),
+        price: "planPrice.toString()", // TEST ONLY - Change back to: planPrice.toString()
         timestamp: Date.now().toString(),
         goodname: `${planName} 정기결제`,
         buyername: buyerName,
@@ -168,15 +170,16 @@ export default function InicisPayment({
         signature: hashes.data.signature,
         verification: hashes.data.verification, // verification 추가
         mKey: hashes.data.mKey,
-        offerPeriod: '', // 빌링키 발급용이므로 빈값
+        offerPeriod: 'M2', // M2: 월 자동결제
         charset: INICIS_CONFIG.charset,
         currency: INICIS_CONFIG.currency,
         goodname: orderData.goodname,
         buyername: orderData.buyername,
         buyertel: orderData.buyertel,
         buyeremail: orderData.buyeremail,
-        returnUrl: `${window.location.origin}/api/payment/inicis/return`,
-        closeUrl: `${window.location.origin}/payment/close`
+        returnUrl: `${window.location.origin}/payment/inicis-return`,
+        closeUrl: `${window.location.origin}/payment/close`,
+        acceptmethod: 'HPP(1):below1000:va_receipt:centerCd(Y)'
       };
 
       // INICIS 결제창 호출
@@ -278,22 +281,20 @@ export default function InicisPayment({
         </Box>
 
         <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-          <Button 
-            variant="outlined" 
+          <UnifiedButton 
+            variant="white" 
             onClick={onClose}
             disabled={loading}
           >
             취소
-          </Button>
-          <Button 
-            variant="contained" 
-            color="warning"
+          </UnifiedButton>
+          <UnifiedButton 
+            variant="colored"
             onClick={requestBillingKey}
             disabled={loading || !inicisLoaded}
-            sx={{ fontWeight: 700 }}
           >
             {loading ? '처리중...' : '정기결제 등록'}
-          </Button>
+          </UnifiedButton>
         </Box>
       </Box>
     </Modal>

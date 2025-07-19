@@ -6,9 +6,10 @@ import { apiCall } from '@/module/utils/api';
 export default function BillingProcess() {
   const router = useRouter();
   const [processing, setProcessing] = useState(true);
+  const [isRequesting, setIsRequesting] = useState(false);
 
   useEffect(() => {
-    if (router.isReady) {
+    if (router.isReady && !isRequesting) {
       console.log('Billing process page - Query params:', router.query);
       
       const {
@@ -22,6 +23,7 @@ export default function BillingProcess() {
 
       if (resultCode === '0000' && authToken && authUrl) {
         // 빌링키 발급 요청
+        setIsRequesting(true);
         requestBillingKeyIssuance({
           authToken: authToken as string,
           authUrl: authUrl as string,
@@ -33,7 +35,7 @@ export default function BillingProcess() {
         router.replace(`/payment/success?resultCode=${resultCode}&resultMsg=${encodeURIComponent(resultMsg as string || '인증에 실패했습니다.')}`);
       }
     }
-  }, [router.isReady, router.query]);
+  }, [router.isReady, router.query, isRequesting]);
 
   const requestBillingKeyIssuance = async (authData: any) => {
     try {
@@ -99,12 +101,15 @@ export default function BillingProcess() {
         bgcolor: '#FFF3E0'
       }}
     >
-      <CircularProgress size={60} />
-      <Typography fontSize={18} fontWeight={600}>
-        빌링키를 발급하고 있습니다...
+      <CircularProgress size={60} sx={{ color: '#FFA726' }} />
+      <Typography fontSize={20} fontWeight={700} color="#FF9800">
+        프로 멤버십 업그레이드 중...
       </Typography>
-      <Typography fontSize={14} color="grey.600">
-        잠시만 기다려주세요.
+      <Typography fontSize={18} fontWeight={600} mt={2}>
+        빌링키를 발급하고 있습니다
+      </Typography>
+      <Typography fontSize={14} color="grey.600" mt={1}>
+        잠시만 기다려주세요. 곧 완료됩니다!
       </Typography>
     </Box>
   );

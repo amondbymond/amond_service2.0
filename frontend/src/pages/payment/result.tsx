@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { Box, Typography, Button, Paper, Divider, Alert } from '@mui/material';
+import { Box, Typography, Button, Paper, Divider, Alert, Fade } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
+import Celebration from '@mui/icons-material/Celebration';
+import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 
 export default function PaymentResult() {
   const router = useRouter();
@@ -45,28 +47,60 @@ export default function PaymentResult() {
         }}
       >
         {isSuccess ? (
-          <>
-            <CheckCircleIcon 
-              sx={{ 
-                fontSize: 80, 
-                color: '#4CAF50', 
-                mb: 2 
-              }} 
-            />
+          <Fade in={true} timeout={1000}>
+            <Box>
+              <Box sx={{ position: 'relative', display: 'inline-block', mb: 2 }}>
+                <WorkspacePremiumIcon 
+                  sx={{ 
+                    fontSize: 80, 
+                    color: '#FFA726',
+                    filter: 'drop-shadow(0px 4px 8px rgba(255, 167, 38, 0.3))'
+                  }} 
+                />
+                <Celebration 
+                  sx={{ 
+                    position: 'absolute',
+                    top: -10,
+                    right: -20,
+                    fontSize: 40,
+                    color: '#FF6B6B',
+                    animation: 'bounce 1s ease-in-out infinite'
+                  }}
+                />
+                <Celebration 
+                  sx={{ 
+                    position: 'absolute',
+                    top: -10,
+                    left: -20,
+                    fontSize: 40,
+                    color: '#4ECDC4',
+                    animation: 'bounce 1s ease-in-out infinite',
+                    animationDelay: '0.5s'
+                  }}
+                />
+              </Box>
             <Typography 
-              fontSize={28} 
+              fontSize={32} 
               fontWeight={700} 
               color="#4CAF50" 
-              mb={2}
+              mb={1}
             >
-              결제 성공!
+              🎉 축하합니다!
             </Typography>
             <Typography 
-              fontSize={18} 
+              fontSize={24} 
+              fontWeight={600} 
+              color="#388E3C" 
+              mb={2}
+            >
+              프로 멤버가 되신 것을 환영합니다!
+            </Typography>
+            <Typography 
+              fontSize={16} 
               color="grey.700" 
               mb={3}
             >
-              프로 요금제로 성공적으로 업그레이드되었습니다.
+              이제 더 많은 콘텐츠를 제작하고 편집할 수 있습니다.
             </Typography>
 
             {membershipUpgraded && (
@@ -120,9 +154,9 @@ export default function PaymentResult() {
                 borderRadius: 2,
                 mb: 2
               }}
-              onClick={() => router.push('/subscribe')}
+              onClick={() => router.push('/profile')}
             >
-              구독 관리 페이지로 이동
+              프로필 페이지로 이동
             </Button>
             <Button 
               variant="outlined" 
@@ -138,7 +172,8 @@ export default function PaymentResult() {
             >
               홈으로 돌아가기
             </Button>
-          </>
+            </Box>
+          </Fade>
         ) : (
           <>
             <ErrorIcon 
@@ -213,6 +248,17 @@ export default function PaymentResult() {
           </>
         )}
       </Paper>
+      
+      <style jsx global>{`
+        @keyframes bounce {
+          0%, 100% {
+            transform: translateY(0);
+          }
+          50% {
+            transform: translateY(-10px);
+          }
+        }
+      `}</style>
     </Box>
   );
 }

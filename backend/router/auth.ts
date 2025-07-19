@@ -46,8 +46,8 @@ router.post("/register/email", async function (req, res) {
   // console.log(encryptedEmail);
   // 정상 가입
   bcrypt.hash(password, saltRounds, async (error, hash) => {
-    const sql = `INSERT INTO user(authType, email, password, emailDuplicate, createdAt)
-      VALUES("이메일", ?, ?, ?, NOW());`;
+    const sql = `INSERT INTO user(authType, email, password, emailDuplicate, grade, createdAt)
+      VALUES("이메일", ?, ?, ?, "basic", NOW());`;
 
     try {
       await queryAsync(sql, [encryptedEmail, hash, emailDuplicate]);
@@ -147,6 +147,58 @@ router.get("/loginCheck", async function (req, res) {
     }
   } else {
     res.status(200).json({ id: null, status: null });
+  }
+});
+
+// 사용자 정보 조회
+router.get("/user", isLogin, async function (req, res) {
+  const userId = req.user?.id;
+
+  try {
+    // 사용자 정보 조회 (민감한 정보 제외)
+    const sql = `
+      SELECT 
+        id,
+        authType,
+        email,
+        CASE 
+          WHEN email IS NOT NULL THEN 
+            SUBSTRING_INDEX(email, '@', 1) 
+          ELSE 
+            CONCAT('user_', id)
+        END as name,
+        grade,
+        membershipStartDate,
+        membershipEndDate,
+        membershipStatus,
+        createdAt,
+        lastLoginAt
+      FROM user 
+      WHERE id = ?
+    `;
+    
+    const result = await queryAsync(sql, [userId]);
+    
+    if (result.length === 0) {
+      return res.status(404).json({ message: "사용자를 찾을 수 없습니다." });
+    }
+
+    // 이메일 복호화 처리
+    const userData = result[0];
+    if (userData.email) {
+      try {
+        userData.email = await transDecrypt(userData.email);
+      } catch (decryptError) {
+        console.error("Email decryption error:", decryptError);
+        // 복호화 실패시 이메일을 숨김 처리
+        userData.email = userData.email.substring(0, 3) + "***@***.***";
+      }
+    }
+
+    return res.status(200).json(userData);
+  } catch (e) {
+    console.error("User fetch error:", e);
+    res.status(500).json({ message: "사용자 정보 조회 중 오류가 발생했습니다." });
   }
 });
 
