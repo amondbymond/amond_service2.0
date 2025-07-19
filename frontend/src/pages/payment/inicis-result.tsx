@@ -236,14 +236,6 @@ export default function InicisResult() {
           <pre style={{ fontSize: '12px', overflow: 'auto' }}>
             {JSON.stringify(debugInfo, null, 2)}
           </pre>
-          {formData && (
-            <>
-              <Typography variant="h6" gutterBottom mt={2}>Form Data:</Typography>
-              <pre style={{ fontSize: '12px', overflow: 'auto' }}>
-                {JSON.stringify(formData, null, 2)}
-              </pre>
-            </>
-          )}
         </Paper>
       )}
     </Box>
