@@ -145,7 +145,7 @@ export default function InicisPayment({
     try {
       const orderData = {
         oid: generateOrderId(),
-        price: "planPrice.toString()", // TEST ONLY - Change back to: planPrice.toString()
+        price: planPrice.toString(), // TEST ONLY - Change back to: planPrice.toString()
         timestamp: Date.now().toString(),
         goodname: `${planName} 정기결제`,
         buyername: buyerName,
