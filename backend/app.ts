@@ -19,10 +19,12 @@ initializePassport(app); // passport 초기화
 import authRouter from "./router/auth";
 import contentRouter from "./router/content";
 import adminRouter from "./router/admin";
+import paymentRouter from "./router/payment";
 
 app.use("/auth", authRouter);
 app.use("/admin", adminRouter);
 app.use("/content", contentRouter);
+app.use("/payment", paymentRouter);
 
 app.get("/", (req, res) => {
   res.status(200).send("OK");

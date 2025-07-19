@@ -2,6 +2,7 @@ import { Box, Button, Typography, Paper, Divider, Modal, TextField, Checkbox, Fo
 import { useState } from "react";
 import { useRouter } from "next/router";
 import { apiCall } from "@/module/utils/api";
+import InicisPayment from "@/component/pageComponent/subscribe/InicisPayment";
 
 type MuiButtonColor = 'primary' | 'secondary' | 'inherit' | 'success' | 'error' | 'info' | 'warning';
 
@@ -12,10 +13,10 @@ const plans = [
     price: "무료",
     highlight: "무료 체험",
     highlights: [
-      { label: "월 콘텐츠 발행 횟수", value: "1" },
-      { label: "콘텐츠별 수", value: "2" },
+      { label: "월 콘텐츠 발행 횟수 (그리드)", value: "1세트" },
+      { label: "콘텐츠별 수정 횟수", value: "2회" },
+      { label: "기획도 생성", value: "1세트" },
       { label: "전담 매니저 SNS 컨설팅", value: "X" },
-      { label: "팀 멤버 관리/운영 beta", value: "X" },
     ],
     button: { label: "무료체험", color: "default", type: "black", disabled: false },
   },
@@ -25,10 +26,10 @@ const plans = [
     price: "9,900원/월",
     highlight: "7일간 무료체험",
     highlights: [
-      { label: "월 콘텐츠 발행 횟수", value: "4" },
-      { label: "콘텐츠별 수", value: "3" },
+      { label: "월 콘텐츠 발행 횟수 (그리드)", value: "4세트" },
+      { label: "콘텐츠별 수정 횟수", value: "3회" },
+      { label: "기획도 생성", value: "4세트" },
       { label: "전담 매니저 SNS 컨설팅", value: "X" },
-      { label: "팀 멤버 관리/운영 beta", value: "X" },
     ],
     button: { label: "7일간 무료체험", color: "warning", type: "orange", disabled: false },
     recommend: true,
@@ -39,10 +40,10 @@ const plans = [
     price: "29,000원/월",
     highlight: "To Be Continued!",
     highlights: [
-      { label: "월 콘텐츠 발행 횟수", value: "10" },
-      { label: "콘텐츠별 수", value: "10" },
-      { label: "전담 매니저 SNS 컨설팅", value: "X" },
-      { label: "팀 멤버 관리/운영 beta", value: "0" },
+      { label: "월 콘텐츠 발행 횟수 (그리드)", value: "10세트" },
+      { label: "콘텐츠별 수정 횟수", value: "10회" },
+      { label: "기획도 생성", value: "10세트" },
+      { label: "전담 매니저 SNS 컨설팅", value: "O" },
     ],
     button: { label: "To Be Continued!", color: "inherit", type: "grey", disabled: true },
   },
@@ -52,10 +53,10 @@ const plans = [
     price: "79,000원/월",
     highlight: "To Be Continued!",
     highlights: [
-      { label: "월 콘텐츠 발행 횟수", value: "무제한" },
-      { label: "콘텐츠별 수", value: "무제한" },
-      { label: "전담 매니저 SNS 컨설팅", value: "0" },
-      { label: "팀 멤버 관리/운영 beta", value: "0" },
+      { label: "월 콘텐츠 발행 횟수 (그리드)", value: "무제한" },
+      { label: "콘텐츠별 수정 횟수", value: "무제한" },
+      { label: "기획도 생성", value: "무제한" },
+      { label: "전담 매니저 SNS 컨설팅", value: "O" },
     ],
     button: { label: "To Be Continued!", color: "inherit", type: "grey", disabled: true },
   },
@@ -122,6 +123,9 @@ function ProTrialModal({ open, onClose }: { open: boolean; onClose: () => void }
   const [billingOption, setBillingOption] = useState<'monthly'>('monthly');
   const [name, setName] = useState('');
   const [company, setCompany] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [inicisModalOpen, setInicisModalOpen] = useState(false);
 
   return (
     <Modal open={open} onClose={onClose}>
@@ -148,7 +152,7 @@ function ProTrialModal({ open, onClose }: { open: boolean; onClose: () => void }
         <Typography color="grey.600" fontSize={16} mb={3}>
           더 많은 콘텐츠를 편하게 제작하고, AI로 마케팅을 자동화 하세요.
         </Typography>
-        <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
+        <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
           <TextField 
             label="이름" 
             size="small" 
@@ -162,6 +166,24 @@ function ProTrialModal({ open, onClose }: { open: boolean; onClose: () => void }
             sx={{ flex: 1 }} 
             value={company} 
             onChange={e => setCompany(e.target.value)}
+          />
+        </Box>
+        <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
+          <TextField 
+            label="이메일" 
+            type="email"
+            size="small" 
+            sx={{ flex: 1 }} 
+            value={email} 
+            onChange={e => setEmail(e.target.value)}
+          />
+          <TextField 
+            label="휴대폰 번호" 
+            size="small" 
+            sx={{ flex: 1 }} 
+            value={phone} 
+            placeholder="010-1234-5678"
+            onChange={e => setPhone(e.target.value)}
           />
         </Box>
         <Typography fontWeight={700} mb={1}>
@@ -303,7 +325,20 @@ function ProTrialModal({ open, onClose }: { open: boolean; onClose: () => void }
             </Typography>
           </Box>
           <Box>
-            <Button variant="contained" color="warning" sx={{ fontWeight: 700, fontSize: 16, borderRadius: 2 }}>
+            <Button 
+              variant="contained" 
+              color="warning" 
+              sx={{ fontWeight: 700, fontSize: 16, borderRadius: 2 }}
+              onClick={() => {
+                if (paymentMethod === 'card') {
+                  if (!name || !email || !phone) {
+                    alert('이름, 이메일, 휴대폰 번호를 모두 입력해주세요.');
+                    return;
+                  }
+                  setInicisModalOpen(true);
+                }
+              }}
+            >
               {paymentMethod === 'bank' ? '무통장 입금 신청' : '프로 요금제로 업그레이드'}
             </Button>
             <Button variant="outlined" sx={{ ml: 2, color: '#888', borderColor: '#eee', fontWeight: 500, fontSize: 14, mt: 1 }} disabled>
@@ -311,6 +346,16 @@ function ProTrialModal({ open, onClose }: { open: boolean; onClose: () => void }
             </Button>
           </Box>
         </Box>
+        
+        <InicisPayment
+          open={inicisModalOpen}
+          onClose={() => setInicisModalOpen(false)}
+          planName="프로"
+          planPrice={9900}
+          buyerName={name}
+          buyerEmail={email}
+          buyerTel={phone}
+        />
       </Box>
     </Modal>
   );
@@ -396,9 +441,6 @@ export default function SubscribePage() {
             </Box>
           ))}
         </Box>
-      </Box>
-      <Box sx={{ textAlign: "center", mt: 8, color: "#888", fontSize: 14 }}>
-        Copyright © amond. All rights reserved
       </Box>
     </Box>
   );

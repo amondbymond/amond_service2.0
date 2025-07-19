@@ -10,6 +10,11 @@ const corsOptions = {
     "https://mond.io.kr",
     "https://app.mond.io.kr",
     "https://service.mond.io.kr",
+    // INICIS 결제 도메인들
+    "https://stgstdpay.inicis.com",
+    "https://stdpay.inicis.com",
+    "https://mobile.inicis.com",
+    "https://stgmobile.inicis.com"
   ],
   credentials: true,
 };
