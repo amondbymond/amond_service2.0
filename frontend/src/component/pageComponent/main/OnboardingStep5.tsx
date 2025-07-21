@@ -410,7 +410,7 @@ export default function OnboardingStep5({
               ref={fileInputRef}
               type="file"
               multiple
-              accept="image/*"
+              accept="image/png, image/jpeg, image/jpg, image/gif, image/webp"
               onChange={handleImageChange}
               style={{ display: "none" }}
             />
